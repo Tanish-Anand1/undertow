@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Undertow — listen before you build</title>
+  <meta name="description" content="Undertow watches Reddit, Hacker News, and X for founder signal — pain, questions, complaints, praise — then surfaces what matters." />
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&f[]=satoshi@400,500,700&f[]=jet-brains-mono@400,500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #070a0c;
+      --ink-2: #0d1216;
+      --foam: #e7eef2;
+      --mist: #8a9aa8;
+      --signal: #5eead4;
+      --signal-dim: rgba(94, 234, 212, 0.14);
+      --silver: #c5d0d8;
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-io: cubic-bezier(0.77, 0, 0.175, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--ink);
+      color: var(--foam);
+      font-family: "Satoshi", system-ui, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+
+    #webgl {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .grain {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.09;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 70% at 50% 40%, transparent 20%, rgba(7, 10, 12, 0.55) 70%, rgba(7, 10, 12, 0.92) 100%),
+        linear-gradient(180deg, rgba(7, 10, 12, 0.35), transparent 30%, transparent 70%, rgba(7, 10, 12, 0.65));
+    }
+
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem clamp(1.25rem, 4vw, 2.5rem);
+      background: linear-gradient(180deg, rgba(7, 10, 12, 0.72), transparent);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      text-decoration: none;
+      color: var(--foam);
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      color: var(--signal);
+    }
+
+    .brand-name {
+      font-family: "Cabinet Grotesk", sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.03em;
+    }
+
+    .nav-cta {
+      appearance: none;
+      border: 1px solid rgba(94, 234, 212, 0.45);
+      background: var(--signal-dim);
+      color: var(--signal);
+      font-family: "Satoshi", sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.7rem 1.1rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 160ms var(--ease-out), background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+    }
+
+    .nav-cta:hover { background: rgba(94, 234, 212, 0.22); border-color: var(--signal); }
+    .nav-cta:active { transform: scale(0.97); }
+
+    .scroll-root {
+      position: relative;
+      z-index: 3;
+    }
+
+    .panel {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      padding: clamp(5rem, 12vh, 8rem) clamp(1.25rem, 5vw, 4rem);
+      position: relative;
+    }
+
+    .panel-inner {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      opacity: 0.18;
+      transform: translateY(28px);
+      filter: blur(2px);
+      transition: opacity 0.01s linear, transform 0.01s linear, filter 0.01s linear;
+      will-change: opacity, transform, filter;
+    }
+
+    .panel.is-active .panel-inner {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    .kicker-ban { display: none; }
+
+    .brand-hero {
+      font-family: "Cabinet Grotesk", sans-serif;
+      font-weight: 800;
+      font-size: clamp(4.6rem, 13vw, 8.5rem);
+      letter-spacing: -0.045em;
+      line-height: 0.88;
+      color: var(--foam);
+      margin: 0 0 1.1rem;
+      text-shadow: 0 0 40px rgba(94, 234, 212, 0.18);
+    }
+
+    .display {
+      font-family: "Cabinet Grotesk", sans-serif;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 0.95;
+      font-size: clamp(3.2rem, 9vw, 6rem);
+      max-width: 12ch;
+      text-wrap: balance;
+      color: var(--foam);
+    }
+
+    .hero-line {
+      font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      max-width: none;
+      white-space: nowrap;
+      color: var(--signal);
+    }
+
+    @media (max-width: 560px) {
+      .hero-line {
+        white-space: normal;
+        max-width: 14ch;
+      }
+    }
+
+    .display em {
+      font-style: normal;
+      color: var(--signal);
+    }
+
+    .hero-inner {
+      max-width: min(640px, 100%);
+    }
+
+    .lede {
+      margin-top: 1.35rem;
+      max-width: 38ch;
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      line-height: 1.55;
+      color: var(--silver);
+      font-weight: 400;
+    }
+
+    .cta-row {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .btn-primary {
+      appearance: none;
+      border: 1px solid rgba(94, 234, 212, 0.85);
+      background:
+        linear-gradient(180deg, rgba(94, 234, 212, 0.95), rgba(45, 190, 170, 0.92));
+      color: #041012;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-weight: 500;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 1rem 1.35rem;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 10px 28px rgba(94, 234, 212, 0.18);
+      transition: transform 160ms var(--ease-out), filter 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.06);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 14px 34px rgba(94, 234, 212, 0.28);
+    }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-ghost {
+      appearance: none;
+      border: 1px solid rgba(231, 238, 242, 0.18);
+      background: rgba(13, 18, 22, 0.45);
+      backdrop-filter: blur(12px);
+      color: var(--foam);
+      font-family: "Satoshi", sans-serif;
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 0.95rem 1.25rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 160ms var(--ease-out), border-color 200ms var(--ease-out);
+    }
+
+    .btn-ghost:hover { border-color: rgba(94, 234, 212, 0.5); }
+    .btn-ghost:active { transform: scale(0.97); }
+
+    .glass {
+      margin-top: 2.25rem;
+      width: min(520px, 100%);
+      padding: 1.25rem 1.35rem;
+      background: rgba(13, 18, 22, 0.52);
+      border: 1px solid rgba(94, 234, 212, 0.16);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      color: var(--signal);
+      text-transform: uppercase;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.65rem;
+      border: 1px solid rgba(94, 234, 212, 0.28);
+      color: var(--signal);
+      background: rgba(94, 234, 212, 0.06);
+    }
+
+    .tag.pain { color: #f5c078; border-color: rgba(245, 192, 120, 0.35); background: rgba(245, 192, 120, 0.08); }
+    .tag.question { color: #8ec8f5; border-color: rgba(142, 200, 245, 0.35); background: rgba(142, 200, 245, 0.08); }
+    .tag.complaint { color: #f0a0a8; border-color: rgba(240, 160, 168, 0.35); background: rgba(240, 160, 168, 0.08); }
+    .tag.praise { color: #8fe0b8; border-color: rgba(143, 224, 184, 0.35); background: rgba(143, 224, 184, 0.08); }
+
+    .feed-card {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid rgba(231, 238, 242, 0.08);
+    }
+
+    .feed-card h3 {
+      font-family: "Cabinet Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      margin: 0.45rem 0;
+    }
+
+    .feed-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--mist);
+      font-size: 0.8rem;
+    }
+
+    .sample-note {
+      margin-top: 0.85rem;
+      font-size: 0.75rem;
+      color: var(--mist);
+    }
+
+    .develop {
+      clip-path: inset(0 0 100% 0);
+      transition: clip-path 900ms var(--ease-out);
+    }
+
+    .panel.is-active .develop {
+      clip-path: inset(0 0 0 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .develop { clip-path: none; transition: none; }
+    }
+
+    .station-list {
+      list-style: none;
+      margin-top: 1.75rem;
+      display: grid;
+      gap: 0.9rem;
+      max-width: 420px;
+    }
+
+    .station-list li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.85rem;
+      align-items: start;
+      padding: 0.85rem 0;
+      border-top: 1px solid rgba(231, 238, 242, 0.1);
+    }
+
+    .station-list strong {
+      font-family: "Cabinet Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+      display: block;
+    }
+
+    .station-list span {
+      color: var(--mist);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      margin-top: 0.35rem;
+      border-radius: 50%;
+      background: var(--signal);
+      box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.45);
+      animation: pulse 2.2s var(--ease-out) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.0); opacity: 0.7; }
+      50% { box-shadow: 0 0 0 10px rgba(94, 234, 212, 0); opacity: 1; }
+    }
+
+    .progress {
+      position: fixed;
+      right: clamp(0.85rem, 2vw, 1.5rem);
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 35;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .progress button {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid rgba(94, 234, 212, 0.35);
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      transition: transform 180ms var(--ease-out), background 180ms var(--ease-out);
+    }
+
+    .progress button[aria-current="true"] {
+      background: var(--signal);
+      transform: scale(1.35);
+    }
+
+    .scroll-hint {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--mist);
+      opacity: 1;
+      transition: opacity 400ms var(--ease-out);
+      pointer-events: none;
+    }
+
+    .scroll-hint.is-hidden { opacity: 0; }
+
+    .footer-cta .display { max-width: 14ch; }
+
+    @media (max-width: 768px) {
+      .progress { display: none; }
+      .display { max-width: 11ch; }
+      .panel { padding-top: 6.5rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dot { animation: none; }
+      .panel-inner {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+      }
+    }
+
+    @media (prefers-reduced-transparency: reduce) {
+      .nav, .glass, .btn-ghost {
+        backdrop-filter: none;
+        background: #10161b;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!--
+    THESIS: Undertow is a listening darkroom — founder signal develops out of the social noise field, not a SaaS feature grid.
+    OWN-WORLD: near-black chamber, teal safelight (#5EEAD4), silver developed text, grain overlay, Cabinet Grotesk + Satoshi + JetBrains Mono, glass trays only for instrument readouts.
+    STORY: Visitor understands the listen→classify→surface loop, believes posts are crawled once for all, and enters the app.
+    FIRST VIEWPORT: Full-bleed WebGL particle undertow; hero-scale Undertow wordmark; one line; one primary CTA; scroll advances the camera through stations.
+    FORM: Brief-pinned podium/Lenis WebGL storytelling fused with darkroom emergence (seed 76b917f0 challenger signals-instruments-darkroom-safelight-bay).
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+  -->
+
+  <canvas id="webgl" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav">
+    <a class="brand" href="#hero">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path d="M4 15c5-7 10-7 14 0s9 7 14 0" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M7 21c3.5-4.5 7-4.5 10.5 0s7 4.5 10.5 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+      </svg>
+      <span class="brand-name">Undertow</span>
+    </a>
+    <a class="nav-cta" href="http://127.0.0.1:5173">Open listening room</a>
+  </header>
+
+  <nav class="progress" aria-label="Sections">
+    <button type="button" data-goto="0" aria-label="Listen" aria-current="true"></button>
+    <button type="button" data-goto="1" aria-label="Watch"></button>
+    <button type="button" data-goto="2" aria-label="Classify"></button>
+    <button type="button" data-goto="3" aria-label="Surface"></button>
+    <button type="button" data-goto="4" aria-label="Enter"></button>
+  </nav>
+
+  <p class="scroll-hint" id="scrollHint">Scroll to develop</p>
+
+  <main class="scroll-root" id="scrollRoot">
+    <section class="panel is-active" id="hero" data-zone="0">
+      <div class="panel-inner hero-inner">
+        <p class="brand-hero">Undertow</p>
+        <h1 class="display hero-line">Signal develops in the noise.</h1>
+        <div class="cta-row">
+          <a class="btn-primary" href="http://127.0.0.1:5173">Enter listening room</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="watch" data-zone="1">
+      <div class="panel-inner">
+        <h2 class="display">One crawl.<br />Every listener.</h2>
+        <p class="lede">Watch keywords across Reddit, Hacker News, and X. Active watchlists collapse to a unique keyword set — posts are ingested once, then matched to every founder watching that niche.</p>
+        <ul class="station-list">
+          <li><span class="dot" aria-hidden="true"></span><div><strong>Compose</strong><span>Add keywords and platforms. HN, Reddit, X — your listening aperture.</span></div></li>
+          <li><span class="dot" aria-hidden="true"></span><div><strong>Expose</strong><span>Shared ingestion hits the unique set, not a per-user crawl loop.</span></div></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel" id="classify" data-zone="2">
+      <div class="panel-inner">
+        <h2 class="display">Develop the signal.</h2>
+        <p class="lede">Each new post runs through a fast classifier. Irrelevant drops away. What remains is tagged and scored so you can skim like an instrument panel, not a timeline.</p>
+        <div class="develop">
+        <div class="tag-row">
+          <span class="tag pain">pain</span>
+          <span class="tag question">question</span>
+          <span class="tag complaint">complaint</span>
+          <span class="tag praise">praise</span>
+        </div>
+        <div class="glass">
+          <p class="mono">Classification tray · sample</p>
+          <div class="feed-card">
+            <span class="tag question">question · 78</span>
+            <h3>Anyone using AI for customer interview synthesis without losing the weird quotes?</h3>
+            <div class="feed-meta"><span>r/SaaS</span><span>↑ 42</span></div>
+          </div>
+          <p class="sample-note">Sample readout for atmosphere — not a live customer claim.</p>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="surface" data-zone="3">
+      <div class="panel-inner">
+        <h2 class="display">Fix it to the feed.</h2>
+        <p class="lede">Live feed sorted by relevance. Daily digest with counts by tag and the top hits — plain, scannable, email-ready. Draft a reply when a thread is worth entering.</p>
+        <div class="glass">
+          <p class="mono">Digest preview · last 24h</p>
+          <div class="feed-card">
+            <div class="feed-meta"><span>High-signal hits</span><span style="color:var(--signal);font-family:'JetBrains Mono',monospace">score ≥ 60</span></div>
+            <h3 style="font-size:2.4rem;margin:0.6rem 0 0.2rem;color:var(--signal)">—</h3>
+            <p style="color:var(--mist);font-size:0.9rem">Connect your watchlists in the app to populate this tray.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel footer-cta" id="enter" data-zone="4">
+      <div class="panel-inner">
+        <h2 class="display">Step into the chamber.</h2>
+        <p class="lede">Register, add one keyword, hit scan. The undertow is already moving.</p>
+        <div class="cta-row">
+          <a class="btn-primary" href="http://127.0.0.1:5173">Open Undertow</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---------- Lenis + GSAP ticker sync (podium / lenis pattern) ---------- */
+    gsap.registerPlugin(ScrollTrigger);
+
+    const lenis = reduceMotion
+      ? null
+      : new Lenis({
+          duration: 1.15,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+    if (lenis) {
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time) => lenis.raf(time * 1000));
+      gsap.ticker.lagSmoothing(0);
+    }
+
+    /* ---------- Three scene ---------- */
+    const canvas = document.getElementById('webgl');
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance',
+    });
+    renderer.setClearColor(0x070a0c, 1);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x070a0c, 0.045);
+
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 120);
+    camera.position.set(0, 0.4, 8.5);
+
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+    const spring = { camX: 0, camY: 0, vx: 0, vy: 0 };
+
+    window.addEventListener('pointermove', (e) => {
+      mouse.tx = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.ty = (e.clientY / window.innerHeight) * 2 - 1;
+    }, { passive: true });
+
+    /* Particle field — custom GLSL with noise + mouse reactive light */
+    const COUNT = reduceMotion ? 3200 : 16000;
+    const positions = new Float32Array(COUNT * 3);
+    const seeds = new Float32Array(COUNT);
+    for (let i = 0; i < COUNT; i++) {
+      const i3 = i * 3;
+      // denser core cloud at hero depth, with a right-field spill
+      const cluster = Math.random();
+      if (cluster < 0.62) {
+        positions[i3] = (Math.random() - 0.25) * 16;
+        positions[i3 + 1] = (Math.random() - 0.5) * 10;
+        positions[i3 + 2] = (Math.random() - 0.35) * 14;
+      } else {
+        positions[i3] = (Math.random() - 0.15) * 30;
+        positions[i3 + 1] = (Math.random() - 0.5) * 18;
+        positions[i3 + 2] = (Math.random() - 0.5) * 36 - 4;
+      }
+      seeds[i] = Math.random();
+    }
+
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+
+    const particleMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uMouse: { value: new THREE.Vector2(0, 0) },
+        uScroll: { value: 0 },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uColor: { value: new THREE.Color('#5eead4') },
+        uColorDim: { value: new THREE.Color('#1a3a42') },
+      },
+      vertexShader: /* glsl */`
+        attribute float aSeed;
+        uniform float uTime;
+        uniform vec2 uMouse;
+        uniform float uScroll;
+        uniform float uPixelRatio;
+        varying float vAlpha;
+        varying float vMix;
+
+        // compact hash / value noise
+        float hash(vec3 p) {
+          p = fract(p * 0.3183099 + 0.1);
+          p *= 17.0;
+          return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+        }
+        float noise(vec3 x) {
+          vec3 i = floor(x);
+          vec3 f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(
+            mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+                mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+            mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+            f.z
+          );
+        }
+
+        void main() {
+          vec3 p = position;
+          float t = uTime * 0.22 + aSeed * 6.2831;
+          float n = noise(p * 0.18 + vec3(0.0, t * 0.35, uScroll * 2.0));
+          p.x += sin(t + p.z * 0.15) * 0.35 + (n - 0.5) * 1.4;
+          p.y += cos(t * 0.8 + p.x * 0.12) * 0.28 + (n - 0.5) * 0.9;
+          p.z += sin(t * 0.5 + aSeed * 10.0) * 0.5 - uScroll * 18.0;
+
+          // mouse light field pull
+          vec2 m = uMouse * 3.5;
+          float d = length(p.xy - m);
+          p.xy += normalize(m - p.xy + 0.0001) * smoothstep(6.0, 0.0, d) * 0.55;
+
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_Position = projectionMatrix * mv;
+          float size = mix(2.8, 9.5, aSeed) * (1.0 + smoothstep(5.0, 0.0, d) * 2.1);
+          gl_PointSize = size * uPixelRatio * (7.2 / max(1.2, -mv.z));
+          vAlpha = smoothstep(24.0, 1.4, -mv.z) * mix(0.4, 1.0, aSeed);
+          vMix = smoothstep(5.5, 0.2, d) * 0.9 + n * 0.3;
+        }
+      `,
+      fragmentShader: /* glsl */`
+        uniform vec3 uColor;
+        uniform vec3 uColorDim;
+        varying float vAlpha;
+        varying float vMix;
+        void main() {
+          vec2 uv = gl_PointCoord - 0.5;
+          float r = length(uv);
+          if (r > 0.5) discard;
+          float soft = smoothstep(0.5, 0.05, r);
+          vec3 col = mix(uColorDim, uColor, clamp(vMix, 0.0, 1.0));
+          gl_FragColor = vec4(col, soft * vAlpha);
+        }
+      `,
+    });
+
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
+    /* Distorted current ribbon */
+    const ribbonGeo = new THREE.PlaneGeometry(22, 10, 96, 48);
+    const ribbonMat = new THREE.ShaderMaterial({
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uScroll: { value: 0 },
+        uMouse: { value: new THREE.Vector2(0, 0) },
+      },
+      vertexShader: /* glsl */`
+        uniform float uTime;
+        uniform float uScroll;
+        uniform vec2 uMouse;
+        varying vec2 vUv;
+        varying float vWave;
+        float n2(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          float w = sin(p.x * 0.55 + uTime * 0.6) * 0.35
+                  + cos(p.y * 0.8 - uTime * 0.4) * 0.2
+                  + sin((p.x + p.y) * 0.3 + uScroll * 4.0) * 0.45;
+          p.z += w;
+          p.xy += uMouse * 0.35 * (1.0 - abs(uv.x - 0.5) * 1.4);
+          vWave = w;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */`
+        varying vec2 vUv;
+        varying float vWave;
+        void main() {
+          float edge = smoothstep(0.0, 0.15, vUv.y) * smoothstep(1.0, 0.85, vUv.y);
+          float band = abs(vUv.x - 0.5);
+          float alpha = (0.08 + abs(vWave) * 0.22) * edge * smoothstep(0.55, 0.0, band);
+          vec3 col = mix(vec3(0.06, 0.18, 0.2), vec3(0.37, 0.92, 0.83), 0.45 + vWave);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `,
+    });
+    const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+    ribbon.rotation.x = -0.55;
+    ribbon.position.set(0, -1.2, -2);
+    scene.add(ribbon);
+
+    /* Soft core light orb */
+    const orbGeo = new THREE.SphereGeometry(1.15, 48, 48);
+    const orbMat = new THREE.MeshBasicMaterial({
+      color: 0x5eead4,
+      transparent: true,
+      opacity: 0.38,
+    });
+    const orb = new THREE.Mesh(orbGeo, orbMat);
+    scene.add(orb);
+    const safelight = new THREE.PointLight(0x5eead4, 4.2, 28, 2);
+    safelight.position.set(2.2, 1.4, 2.5);
+    scene.add(safelight);
+    const fill = new THREE.PointLight(0xa8c4d0, 0.55, 40, 2);
+    fill.position.set(-4, 2, 6);
+    scene.add(fill);
+
+    /* Post: bloom + subtle film grain shader */
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.72);
+    composer.addPass(bloom);
+
+    const GrainShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uAmount: { value: reduceMotion ? 0.02 : 0.055 },
+      },
+      vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */`
+        uniform sampler2D tDiffuse;
+        uniform float uTime;
+        uniform float uAmount;
+        varying vec2 vUv;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+        void main() {
+          vec4 c = texture2D(tDiffuse, vUv);
+          float g = hash(vUv * vec2(1920.0, 1080.0) + uTime) * 2.0 - 1.0;
+          // difference-leaning grain (podium-adjacent contrast, not soft glow)
+          c.rgb = mix(c.rgb, abs(c.rgb - g * uAmount), 0.35);
+          gl_FragColor = c;
+        }
+      `,
+    };
+    const grainPass = new ShaderPass(GrainShader);
+    composer.addPass(grainPass);
+
+    function resize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const pr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(pr);
+      renderer.setSize(w, h, false);
+      composer.setSize(w, h);
+      bloom.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      particleMat.uniforms.uPixelRatio.value = pr;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    /* Camera waypoints synced to scroll zones */
+    const waypoints = [
+      { pos: new THREE.Vector3(0, 0.4, 8.5), look: new THREE.Vector3(0, 0, 0) },
+      { pos: new THREE.Vector3(-1.8, 0.8, 4.2), look: new THREE.Vector3(0.5, -0.2, -2) },
+      { pos: new THREE.Vector3(1.6, -0.2, 1.2), look: new THREE.Vector3(-0.4, 0.3, -4) },
+      { pos: new THREE.Vector3(0.2, 1.1, -2.5), look: new THREE.Vector3(0, 0, -8) },
+      { pos: new THREE.Vector3(0, 0.2, -6.5), look: new THREE.Vector3(0, 0, -12) },
+    ];
+
+    const panels = [...document.querySelectorAll('.panel')];
+    const dots = [...document.querySelectorAll('.progress button')];
+    const hint = document.getElementById('scrollHint');
+    const scrollState = { progress: 0, zone: 0 };
+
+    function setActiveZone(z) {
+      scrollState.zone = z;
+      panels.forEach((p, i) => p.classList.toggle('is-active', i === z));
+      dots.forEach((d, i) => d.setAttribute('aria-current', i === z ? 'true' : 'false'));
+    }
+
+    ScrollTrigger.create({
+      trigger: '#scrollRoot',
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      onUpdate: (self) => {
+        scrollState.progress = self.progress;
+        particleMat.uniforms.uScroll.value = self.progress;
+        ribbonMat.uniforms.uScroll.value = self.progress;
+        if (hint) hint.classList.toggle('is-hidden', self.progress > 0.04);
+
+        const z = Math.min(waypoints.length - 1, Math.floor(self.progress * panels.length));
+        if (z !== scrollState.zone) setActiveZone(z);
+
+        // soft per-panel activation by viewport center
+        const mid = window.innerHeight * 0.42;
+        let best = 0;
+        let bestDist = Infinity;
+        panels.forEach((panel, i) => {
+          const r = panel.getBoundingClientRect();
+          const c = r.top + r.height * 0.35;
+          const dist = Math.abs(c - mid);
+          if (dist < bestDist) { bestDist = dist; best = i; }
+          const inner = panel.querySelector('.panel-inner');
+          if (!inner || reduceMotion) return;
+          const visibility = 1 - Math.min(1, dist / (window.innerHeight * 0.65));
+          const eased = visibility * visibility;
+          inner.style.opacity = String(0.12 + eased * 0.88);
+          inner.style.transform = `translateY(${(1 - eased) * 24}px)`;
+          inner.style.filter = `blur(${(1 - eased) * 2.2}px)`;
+        });
+        if (best !== scrollState.zone) setActiveZone(best);
+      },
+    });
+
+    dots.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.goto);
+        const target = panels[i];
+        if (!target) return;
+        if (lenis) lenis.scrollTo(target, { offset: 0, duration: 1.2 });
+        else target.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    /* Spring camera tilt (Apple critically-damped feel) */
+    function springStep(current, target, velocity, damping, response, dt) {
+      // response ~ settle time; damping 1 = no overshoot
+      const omega = (2 * Math.PI) / Math.max(0.05, response);
+      const f = 1 + 2 * dt * damping * omega;
+      const oo = omega * omega;
+      const hoo = dt * oo;
+      const hhoo = dt * hoo;
+      const detInv = 1 / (f + hhoo);
+      const nVel = (velocity + hoo * (target - current)) * detInv;
+      const nPos = (f * current + dt * velocity + hhoo * target) * detInv;
+      return { pos: nPos, vel: nVel };
+    }
+
+    const clock = new THREE.Clock();
+    const camPos = camera.position.clone();
+    const lookAt = new THREE.Vector3();
+
+    function frame() {
+      const dt = Math.min(0.033, clock.getDelta());
+      const t = clock.elapsedTime;
+
+      mouse.x += (mouse.tx - mouse.x) * 0.08;
+      mouse.y += (mouse.ty - mouse.y) * 0.08;
+
+      const sx = springStep(spring.camX, mouse.x * 0.55, spring.vx, 1.0, 0.4, dt);
+      const sy = springStep(spring.camY, mouse.y * 0.35, spring.vy, 1.0, 0.4, dt);
+      spring.camX = sx.pos; spring.vx = sx.vel;
+      spring.camY = sy.pos; spring.vy = sy.vel;
+
+      const p = scrollState.progress * (waypoints.length - 1);
+      const i0 = Math.floor(p);
+      const i1 = Math.min(waypoints.length - 1, i0 + 1);
+      const f = p - i0;
+      // smoothstep
+      const s = f * f * (3 - 2 * f);
+      camPos.lerpVectors(waypoints[i0].pos, waypoints[i1].pos, s);
+      lookAt.lerpVectors(waypoints[i0].look, waypoints[i1].look, s);
+
+      camera.position.set(
+        camPos.x + spring.camX * 0.65,
+        camPos.y - spring.camY * 0.45,
+        camPos.z
+      );
+      camera.lookAt(lookAt.x + spring.camX * 0.2, lookAt.y, lookAt.z);
+
+      particleMat.uniforms.uTime.value = t;
+      particleMat.uniforms.uMouse.value.set(mouse.x, -mouse.y);
+      ribbonMat.uniforms.uTime.value = t;
+      ribbonMat.uniforms.uMouse.value.set(mouse.x, -mouse.y);
+      grainPass.uniforms.uTime.value = t;
+
+      orb.position.set(
+        2.4 + Math.sin(t * 0.28) * 0.55,
+        0.9 + Math.cos(t * 0.22) * 0.25,
+        1.8 - scrollState.progress * 8
+      );
+      orb.material.opacity = 0.28 + Math.sin(t * 1.1) * 0.08;
+      safelight.position.copy(orb.position);
+      safelight.intensity = 3.6 + Math.sin(t * 1.1) * 0.6;
+
+      composer.render();
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+
+    // Reduced motion: show panels fully, skip lenis already handled
+    if (reduceMotion) {
+      panels.forEach((p) => {
+        p.classList.add('is-active');
+        const inner = p.querySelector('.panel-inner');
+        if (inner) {
+          inner.style.opacity = '1';
+          inner.style.transform = 'none';
+          inner.style.filter = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

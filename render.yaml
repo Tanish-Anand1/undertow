@@ -1,0 +1,76 @@
+# https://render.com — set remaining env in the dashboard, never in git
+# LLM keys, X keys, SendGrid, Google OAuth, CORS_ORIGINS, PUBLIC_BASE_URL
+services:
+  - type: web
+    name: undertow-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: undertow-pg
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: undertow-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHONPATH
+        value: .
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+
+  - type: worker
+    name: undertow-worker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.worker
+    rootDir: backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: undertow-pg
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: undertow-redis
+          type: redis
+          property: connectionString
+      - key: PYTHONPATH
+        value: .
+
+  - type: worker
+    name: undertow-clock
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.clock
+    rootDir: backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: undertow-pg
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: undertow-redis
+          type: redis
+          property: connectionString
+      - key: PYTHONPATH
+        value: .
+
+  - type: redis
+    name: undertow-redis
+    ipAllowList: []
+    plan: starter
+
+databases:
+  - name: undertow-pg
+    plan: starter
+    databaseName: undertow
+    user: undertow

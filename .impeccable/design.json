@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-13T18:18:00.000Z",
+  "title": "Design System: Undertow",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Chamber Ink",
+        "canonical": "#070a0c",
+        "tonalRamp": ["#070a0c", "#10161b", "#1a2228", "#2a343c", "#4a5864", "#8a9aa8", "#c5d0d8", "#e7eef2"]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Tray Ink",
+        "canonical": "#0d1216",
+        "tonalRamp": ["#070a0c", "#0d1216", "#10161b", "#1c252c", "#3a4650", "#6a7a88", "#a8b6c0", "#e7eef2"]
+      },
+      "ink-on-signal": {
+        "role": "neutral",
+        "displayName": "Ink on Signal",
+        "canonical": "#041012",
+        "tonalRamp": ["#041012", "#07181c", "#0e2a30", "#1a454d", "#2f6a74", "#5eead4", "#a7f3e7", "#e6fffa"]
+      },
+      "foam": {
+        "role": "neutral",
+        "displayName": "Foam",
+        "canonical": "#e7eef2",
+        "tonalRamp": ["#1a2228", "#2a343c", "#4a5864", "#6a7a88", "#8a9aa8", "#c5d0d8", "#e7eef2", "#f5f8fa"]
+      },
+      "silver": {
+        "role": "neutral",
+        "displayName": "Developed Silver",
+        "canonical": "#c5d0d8",
+        "tonalRamp": ["#1a2228", "#2a343c", "#4a5864", "#6a7a88", "#8a9aa8", "#a8b6c0", "#c5d0d8", "#e7eef2"]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "canonical": "#8a9aa8",
+        "tonalRamp": ["#1a2228", "#2a343c", "#3a4650", "#4a5864", "#6a7a88", "#8a9aa8", "#a8b6c0", "#c5d0d8"]
+      },
+      "signal": {
+        "role": "primary",
+        "displayName": "Safelight Teal",
+        "canonical": "#5eead4",
+        "tonalRamp": ["#041012", "#0e2a30", "#1a3a42", "#2a5f68", "#3d8a8a", "#5eead4", "#99f6e4", "#ccfbf1"]
+      },
+      "signal-dim": {
+        "role": "primary",
+        "displayName": "Safelight Wash",
+        "canonical": "rgba(94, 234, 212, 0.14)",
+        "tonalRamp": ["rgba(94,234,212,0.04)", "rgba(94,234,212,0.08)", "rgba(94,234,212,0.14)", "rgba(94,234,212,0.22)", "rgba(94,234,212,0.35)", "rgba(94,234,212,0.55)", "rgba(94,234,212,0.75)", "#5eead4"]
+      },
+      "signal-deep": {
+        "role": "secondary",
+        "displayName": "Undertow Dim",
+        "canonical": "#1a3a42",
+        "tonalRamp": ["#070a0c", "#0e2a30", "#1a3a42", "#244a54", "#2f6a74", "#3d8a8a", "#5eead4", "#99f6e4"]
+      },
+      "tag-pain": {
+        "role": "tertiary",
+        "displayName": "Pain Amber",
+        "canonical": "#f5c078",
+        "tonalRamp": ["#2a1c0c", "#4a3018", "#6b4520", "#8f5c28", "#b87840", "#f5c078", "#f8d4a0", "#fcebd4"]
+      },
+      "tag-question": {
+        "role": "tertiary",
+        "displayName": "Question Blue",
+        "canonical": "#8ec8f5",
+        "tonalRamp": ["#0c1a28", "#183048", "#244868", "#3a6a90", "#5a92c0", "#8ec8f5", "#b5dbf8", "#dceefc"]
+      },
+      "tag-complaint": {
+        "role": "tertiary",
+        "displayName": "Complaint Rose",
+        "canonical": "#f0a0a8",
+        "tonalRamp": ["#2a1014", "#4a1c24", "#6b2834", "#903848", "#c06070", "#f0a0a8", "#f5c0c6", "#fae0e3"]
+      },
+      "tag-praise": {
+        "role": "tertiary",
+        "displayName": "Praise Mint",
+        "canonical": "#8fe0b8",
+        "tonalRamp": ["#0c2418", "#183828", "#245038", "#3a7050", "#5aa878", "#8fe0b8", "#b8ecd4", "#dff7ec"]
+      },
+      "solid-fallback": {
+        "role": "neutral",
+        "displayName": "Solid Fallback",
+        "canonical": "#10161b",
+        "tonalRamp": ["#070a0c", "#0d1216", "#10161b", "#1a2228", "#2a343c", "#4a5864", "#8a9aa8", "#e7eef2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero and station titles; brand-scale Cabinet Grotesk." },
+      "title": { "displayName": "Title", "purpose": "Feed-card and station-list headings inside trays/lists." },
+      "body": { "displayName": "Body / Lede", "purpose": "Silver supporting sentence under each display (~38ch)." },
+      "label": { "displayName": "Instrument Label", "purpose": "Mono tray headers, tags, scroll hints." },
+      "brand-nav": { "displayName": "Brand Nav", "purpose": "Wordmark beside the safelight mark." }
+    },
+    "shadows": [
+      {
+        "name": "tray-ambient",
+        "value": "0 18px 50px rgba(0, 0, 0, 0.35)",
+        "purpose": "Glass instrument trays only."
+      },
+      {
+        "name": "signal-pulse",
+        "value": "0 0 0 10px rgba(94, 234, 212, 0)",
+        "purpose": "Animated ring on station presence dots — presence, not elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Default UI state easing (hover, progress, hint fade)."
+      },
+      {
+        "name": "press-scale",
+        "value": "scale(0.97)",
+        "purpose": "Active press on primary, ghost, and nav CTAs (~160ms)."
+      },
+      {
+        "name": "lenis-duration",
+        "value": "1.15s",
+        "purpose": "Smooth scroll duration for station camera storytelling."
+      },
+      {
+        "name": "dot-pulse",
+        "value": "2.2s cubic-bezier(0.23, 1, 0.32, 1) infinite",
+        "purpose": "Station list signal dots."
+      }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Filled safelight CTA into the listening room.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Enter listening room</button>",
+      "css": ".ds-btn-primary { appearance: none; border: none; background: #5eead4; color: #041012; font-family: Satoshi, system-ui, sans-serif; font-weight: 700; font-size: 0.95rem; padding: 0.95rem 1.35rem; border-radius: 0; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), filter 200ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-btn-primary:hover { filter: brightness(1.08); } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2px solid #5eead4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary sharp CTA with tray-ink glass and foam hairline.",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\">See the stations</button>",
+      "css": ".ds-btn-ghost { appearance: none; border: 1px solid rgba(231, 238, 242, 0.18); background: rgba(13, 18, 22, 0.45); backdrop-filter: blur(12px); color: #e7eef2; font-family: Satoshi, system-ui, sans-serif; font-weight: 500; font-size: 0.95rem; padding: 0.95rem 1.25rem; border-radius: 0; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 200ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-btn-ghost:hover { border-color: rgba(94, 234, 212, 0.5); } .ds-btn-ghost:active { transform: scale(0.97); } .ds-btn-ghost:focus-visible { outline: 2px solid #5eead4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Nav CTA",
+      "kind": "button",
+      "refersTo": "button-nav",
+      "description": "Compact safelight-wash control in the fixed nav.",
+      "html": "<a class=\"ds-btn-nav\" href=\"#\">Open listening room</a>",
+      "css": ".ds-btn-nav { display: inline-block; border: 1px solid rgba(94, 234, 212, 0.45); background: rgba(94, 234, 212, 0.14); color: #5eead4; font-family: Satoshi, system-ui, sans-serif; font-weight: 700; font-size: 0.85rem; padding: 0.7rem 1.1rem; border-radius: 0; text-decoration: none; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1), border-color 200ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-btn-nav:hover { background: rgba(94, 234, 212, 0.22); border-color: #5eead4; } .ds-btn-nav:active { transform: scale(0.97); } .ds-btn-nav:focus-visible { outline: 2px solid #5eead4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Glass Tray",
+      "kind": "card",
+      "refersTo": "glass-tray",
+      "description": "Instrument readout only — classification or digest sample.",
+      "html": "<div class=\"ds-glass\"><p class=\"ds-mono\">Classification tray · sample</p><div class=\"ds-feed\"><span class=\"ds-tag ds-tag-question\">question · 78</span><h3 class=\"ds-feed-title\">Anyone using AI for customer interview synthesis?</h3><div class=\"ds-feed-meta\"><span>r/SaaS</span><span>↑ 42</span></div></div></div>",
+      "css": ".ds-glass { width: min(520px, 100%); padding: 1.25rem 1.35rem; background: rgba(13, 18, 22, 0.52); border: 1px solid rgba(94, 234, 212, 0.16); backdrop-filter: blur(18px) saturate(140%); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); border-radius: 0; color: #e7eef2; } .ds-mono { font-family: \"JetBrains Mono\", ui-monospace, monospace; font-size: 0.72rem; letter-spacing: 0.04em; color: #5eead4; text-transform: uppercase; margin: 0; } .ds-feed { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid rgba(231, 238, 242, 0.08); } .ds-feed-title { font-family: \"Cabinet Grotesk\", sans-serif; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; line-height: 1.25; margin: 0.45rem 0; color: #e7eef2; } .ds-feed-meta { display: flex; justify-content: space-between; gap: 1rem; color: #8a9aa8; font-size: 0.8rem; font-family: Satoshi, system-ui, sans-serif; } .ds-tag { display: inline-block; font-family: \"JetBrains Mono\", monospace; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.4rem 0.65rem; border: 1px solid rgba(94, 234, 212, 0.28); color: #5eead4; background: rgba(94, 234, 212, 0.06); border-radius: 0; } .ds-tag-question { color: #8ec8f5; border-color: rgba(142, 200, 245, 0.35); background: rgba(142, 200, 245, 0.08); }"
+    },
+    {
+      "name": "Classification Tag",
+      "kind": "chip",
+      "refersTo": "tag-signal",
+      "description": "Mono uppercase classification chip; dye variants for pain/question/complaint/praise.",
+      "html": "<div class=\"ds-tag-row\"><span class=\"ds-tag\">signal</span><span class=\"ds-tag ds-tag-pain\">pain</span><span class=\"ds-tag ds-tag-question\">question</span><span class=\"ds-tag ds-tag-complaint\">complaint</span><span class=\"ds-tag ds-tag-praise\">praise</span></div>",
+      "css": ".ds-tag-row { display: flex; flex-wrap: wrap; gap: 0.5rem; } .ds-tag { font-family: \"JetBrains Mono\", monospace; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.4rem 0.65rem; border: 1px solid rgba(94, 234, 212, 0.28); color: #5eead4; background: rgba(94, 234, 212, 0.06); border-radius: 0; } .ds-tag-pain { color: #f5c078; border-color: rgba(245, 192, 120, 0.35); background: rgba(245, 192, 120, 0.08); } .ds-tag-question { color: #8ec8f5; border-color: rgba(142, 200, 245, 0.35); background: rgba(142, 200, 245, 0.08); } .ds-tag-complaint { color: #f0a0a8; border-color: rgba(240, 160, 168, 0.35); background: rgba(240, 160, 168, 0.08); } .ds-tag-praise { color: #8fe0b8; border-color: rgba(143, 224, 184, 0.35); background: rgba(143, 224, 184, 0.08); }"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "refersTo": "button-nav",
+      "description": "Fixed darkroom bar: safelight mark, Cabinet wordmark, nav CTA.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\"><svg class=\"ds-mark\" viewBox=\"0 0 32 32\" width=\"28\" height=\"28\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 15c5-7 10-7 14 0s9 7 14 0\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><path d=\"M7 21c3.5-4.5 7-4.5 10.5 0s7 4.5 10.5 0\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" opacity=\"0.55\"/></svg><span class=\"ds-brand-name\">Undertow</span></a><a class=\"ds-btn-nav\" href=\"#\">Open listening room</a></header>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; background: linear-gradient(180deg, rgba(7, 10, 12, 0.72), transparent); backdrop-filter: blur(14px) saturate(140%); } .ds-brand { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: #e7eef2; } .ds-mark { color: #5eead4; } .ds-brand-name { font-family: \"Cabinet Grotesk\", sans-serif; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.03em; } .ds-btn-nav { border: 1px solid rgba(94, 234, 212, 0.45); background: rgba(94, 234, 212, 0.14); color: #5eead4; font-family: Satoshi, system-ui, sans-serif; font-weight: 700; font-size: 0.85rem; padding: 0.7rem 1.1rem; border-radius: 0; text-decoration: none; } .ds-btn-nav:hover { background: rgba(94, 234, 212, 0.22); border-color: #5eead4; } .ds-btn-nav:focus-visible { outline: 2px solid #5eead4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Station Progress",
+      "kind": "custom",
+      "refersTo": "button-primary",
+      "description": "Right-rail circular waypoints; current fills safelight and scales.",
+      "html": "<nav class=\"ds-progress\" aria-label=\"Sections\"><button type=\"button\" aria-current=\"true\" aria-label=\"Listen\"></button><button type=\"button\" aria-label=\"Watch\"></button><button type=\"button\" aria-label=\"Classify\"></button></nav>",
+      "css": ".ds-progress { display: flex; flex-direction: column; gap: 0.55rem; } .ds-progress button { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(94, 234, 212, 0.35); background: transparent; padding: 0; cursor: pointer; transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), background 180ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-progress button[aria-current=\"true\"] { background: #5eead4; transform: scale(1.35); } .ds-progress button:hover { border-color: #5eead4; } .ds-progress button:focus-visible { outline: 2px solid #5eead4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Display + Lede",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Station typography block: Cabinet display with optional safelight emphasis + silver lede.",
+      "html": "<div class=\"ds-station\"><h1 class=\"ds-display\">Hear the <em>undertow</em> before you ship.</h1><p class=\"ds-lede\">Watch keywords across Reddit, Hacker News, and X. Undertow classifies the noise into pain, questions, complaints, and praise.</p></div>",
+      "css": ".ds-station { max-width: 38ch; } .ds-display { font-family: \"Cabinet Grotesk\", sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 0.95; font-size: clamp(3.2rem, 9vw, 6rem); max-width: 12ch; color: #e7eef2; margin: 0; text-wrap: balance; } .ds-display em { font-style: normal; color: #5eead4; } .ds-lede { margin: 1.35rem 0 0; max-width: 38ch; font-family: Satoshi, system-ui, sans-serif; font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.55; color: #c5d0d8; font-weight: 400; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Listening Darkroom",
+    "overview": "Undertow is a near-black chamber where founder signal develops under a teal safelight. The marketing surface is not a SaaS feature grid: it is a scroll-driven darkroom — full-bleed WebGL particle undertow behind silver developed copy, grain and vignette as atmosphere, and glass only where an instrument readout belongs.\n\nDensity is spare and typographic. Each station carries one display line, one short lede, and at most one tray of classified signal. Motion is the camera advancing through Lenis-synced waypoints; UI chrome stays sharp-cornered and quiet so the field can breathe.\n\nConfirmed visual rejections from the shipped build: no eyebrow/kicker strips (`.kicker-ban`), no card grids as marketing layout, no rounded SaaS chrome on CTAs or trays.",
+    "keyCharacteristics": [
+      "Near-black ink field with teal safelight accent and silver body copy",
+      "Cabinet Grotesk display + Satoshi body + JetBrains Mono instrument labels",
+      "Full-bleed WebGL undertow + grain (9% overlay) + vignette as the depth stack",
+      "Sharp corners everywhere except circular station/progress dots",
+      "Glass trays reserved for classification/digest instrument readouts"
+    ],
+    "rules": [
+      { "name": "The Safelight Rule", "body": "Teal is the only UI accent. It stays rare: mark, emphasis word, CTAs, instrument chrome — never a purple/indigo marketing wash.", "section": "colors" },
+      { "name": "The Classification Dye Rule", "body": "Pain/question/complaint/praise colors appear only on tags inside instrument contexts. They do not recolor headlines, backgrounds, or CTAs.", "section": "colors" },
+      { "name": "The Three-Voice Rule", "body": "Display = Cabinet. UI/body = Satoshi. Instrument = JetBrains Mono. Do not swap roles.", "section": "typography" },
+      { "name": "The No-Kicker Rule", "body": "No eyebrow, kicker, or uppercase label above the display. Station identity is the display line itself.", "section": "typography" },
+      { "name": "The Atmosphere-Not-Chrome Rule", "body": "Depth comes from vignette, grain, fog, and bloom — not stacked card elevations or neon glows on buttons.", "section": "elevation" },
+      { "name": "The Glass Tray Rule", "body": "Backdrop-blur glass is reserved for instrument readouts (classification/digest). Do not glass-wrap marketing copy blocks or hero text.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the first viewport as brand-scale display + one silver lede + one primary CTA over the full-bleed undertow.",
+      "Do use glass trays only for instrument sample readouts with mono headers.",
+      "Do honor prefers-reduced-motion (readable panels, no scroll-camera dependency) and prefers-reduced-transparency (solid #10161b trays/nav).",
+      "Do mark sample feed content as sample — never invent live metrics or customer claims."
+    ],
+    "donts": [
+      "Don't add kickers/eyebrows above display lines.",
+      "Don't round CTA or tray corners into SaaS pill/card chrome.",
+      "Don't spread classification dyes or teal washes across full backgrounds.",
+      "Don't replace the WebGL undertow + grain stack with flat solid marketing sections or feature-card grids."
+    ]
+  }
+}

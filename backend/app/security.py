@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+from urllib.parse import urlparse
+
+
+def sanitize_http_url(url: str | None, *, max_len: int = 2000) -> str:
+    """Allow only http(s) URLs. Blocks javascript:, data:, and protocol-relative tricks."""
+    raw = (url or "").strip()
+    if not raw or len(raw) > max_len:
+        return ""
+    if raw.startswith("//"):
+        return ""
+    parsed = urlparse(raw)
+    if parsed.scheme not in ("http", "https"):
+        return ""
+    if not parsed.netloc or parsed.netloc.startswith("."):
+        return ""
+    return raw
+
+
+def sanitize_keyword(value: str, *, max_len: int = 255) -> str:
+    cleaned = " ".join((value or "").split())
+    cleaned = "".join(ch for ch in cleaned if ch.isprintable() and ch != "\x00")
+    return cleaned[:max_len].strip()
+
+
+ALLOWED_PLATFORMS = frozenset({"hn", "github", "x", "reddit"})
+ALLOWED_TAGS = frozenset({"pain", "question", "complaint", "praise", "irrelevant"})
+
+
+def sanitize_platform(value: str | None) -> str | None:
+    if not value:
+        return None
+    v = value.strip().lower()
+    return v if v in ALLOWED_PLATFORMS else None
+
+
+def sanitize_tag(value: str | None) -> str | None:
+    if not value:
+        return None
+    v = value.strip().lower()
+    return v if v in ALLOWED_TAGS else None

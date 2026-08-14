@@ -1,0 +1,154 @@
+from datetime import datetime, timedelta, timezone
+import secrets
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
+from app.auth import authenticate_user, create_access_token, get_current_user, hash_password
+from app.config import get_settings
+from app.database import get_db
+from app.emailer import send_email
+from app.limits import allow_auth_attempt
+from app.models import User
+from app.oauth_google import (
+    consume_oauth_state,
+    exchange_google_code,
+    google_authorize_url,
+    google_configured,
+    issue_frontend_redirect,
+    make_oauth_state,
+    upsert_google_user,
+)
+from app.schemas import ForgotPasswordIn, ResetPasswordIn, TokenOut, UserCreate, UserOut, VerifyEmailIn
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _client_key(request: Request, email: str) -> str:
+    ip = request.client.host if request.client else "unknown"
+    return f"{ip}:{email.lower()}"
+
+
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)) -> User:
+    if not allow_auth_attempt(f"reg:{_client_key(request, payload.email)}"):
+        raise HTTPException(status_code=429, detail="Too many signup attempts. Try again later.")
+    existing = db.query(User).filter(User.email == payload.email.lower()).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    settings = get_settings()
+    token = secrets.token_urlsafe(32)
+    user = User(
+        email=payload.email.lower(),
+        hashed_password=hash_password(payload.password),
+        email_verified=not settings.require_email_verify,
+        email_verify_token=token if settings.require_email_verify else None,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    if settings.require_email_verify:
+        link = f"{settings.public_base_url}/app?verify={token}"
+        send_email(
+            user.email,
+            "Verify your Undertow email",
+            f"Confirm this address to finish signup:\n{link}\n",
+        )
+    return user
+
+
+@router.post("/login", response_model=TokenOut)
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+) -> TokenOut:
+    email = form_data.username.lower()
+    if not allow_auth_attempt(_client_key(request, email)):
+        raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
+    user = authenticate_user(db, email, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if get_settings().require_email_verify and not user.email_verified:
+        raise HTTPException(status_code=403, detail="Verify your email before signing in.")
+    return TokenOut(access_token=create_access_token(user.email))
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)) -> dict:
+    user = db.query(User).filter(User.email == payload.email.lower()).first()
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=2)
+        db.commit()
+        settings = get_settings()
+        link = f"{settings.public_base_url}/app?reset={token}"
+        send_email(
+            user.email,
+            "Reset your Undertow password",
+            f"Use this link within two hours:\n{link}\n",
+        )
+    return {"ok": True}
+
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordIn, db: Session = Depends(get_db)) -> dict:
+    user = db.query(User).filter(User.reset_token == payload.token).first()
+    if not user or not user.reset_token_expires:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+    expires = user.reset_token_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+    user.hashed_password = hash_password(payload.password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/verify-email")
+def verify_email(payload: VerifyEmailIn, db: Session = Depends(get_db)) -> dict:
+    user = db.query(User).filter(User.email_verify_token == payload.token).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid verification link")
+    user.email_verified = True
+    user.email_verify_token = None
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/me", response_model=UserOut)
+def me(user: User = Depends(get_current_user)) -> User:
+    return user
+
+
+@router.get("/google/start")
+def google_start() -> RedirectResponse:
+    if not google_configured():
+        raise HTTPException(status_code=503, detail="Google sign-in is not configured.")
+    state = make_oauth_state()
+    return RedirectResponse(google_authorize_url(state), status_code=302)
+
+
+@router.get("/google/callback")
+def google_callback(
+    db: Session = Depends(get_db),
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+) -> RedirectResponse:
+    settings = get_settings()
+    fail = f"{settings.public_base_url.rstrip('/')}/app#google_error=1"
+    if error or not code or not consume_oauth_state(state or ""):
+        return RedirectResponse(fail, status_code=302)
+    try:
+        info = exchange_google_code(code)
+        user = upsert_google_user(db, info)
+    except HTTPException:
+        return RedirectResponse(fail, status_code=302)
+    return RedirectResponse(issue_frontend_redirect(user), status_code=302)

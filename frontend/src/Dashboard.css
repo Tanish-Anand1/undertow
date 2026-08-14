@@ -1,0 +1,517 @@
+.chamber {
+  min-height: 100dvh;
+}
+
+.chamber-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding: 1.35rem clamp(1.2rem, 4vw, 2.5rem);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+}
+
+.chamber-live {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.chamber-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  margin-right: 0.4rem;
+}
+
+.chamber-dot.on {
+  background: var(--signal);
+}
+
+.chamber-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.chamber-actions button,
+.chamber-actions a {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--mute);
+  cursor: pointer;
+  transition: color 180ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.chamber-actions .scan {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.7rem 1rem;
+  letter-spacing: 0.14em;
+}
+
+.chamber-actions .scan:disabled {
+  opacity: 0.55;
+}
+
+.chamber-actions button:active,
+.chamber-actions a:active,
+.chamber-actions .scan:active,
+.hm-cta:active,
+.chamber-add button:active,
+.chamber-list button:active,
+.chamber-filters button:active,
+.chamber-post footer button:active,
+.auth-form button[type="submit"]:active,
+.auth-form .switch:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chamber-actions button:hover,
+  .chamber-actions a:hover {
+    color: var(--ink);
+  }
+
+  .chamber-actions .scan:hover {
+    background: #2a2a2a;
+    color: var(--paper);
+  }
+}
+
+.chamber-err {
+  margin: 0 clamp(1.2rem, 4vw, 2.5rem);
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(140, 40, 28, 0.25);
+  color: #8c281c;
+  font-size: 0.92rem;
+}
+
+.chamber-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: calc(100dvh - 4.8rem);
+}
+
+.chamber-side,
+.chamber-feed,
+.chamber-rail {
+  padding: 1.75rem clamp(1.2rem, 4vw, 2.25rem) 3rem;
+}
+
+.chamber-side {
+  border-top: 1px solid var(--line);
+}
+
+.chamber-side h2,
+.chamber-feed h2,
+.chamber-rail h2 {
+  margin: 0 0 1.1rem;
+  font-family: "Bodoni Moda", serif;
+  font-weight: 400;
+  font-size: 1.85rem;
+  letter-spacing: -0.03em;
+}
+
+.chamber-add {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1.15rem;
+}
+
+.chamber-add input,
+.auth-form input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.55rem 0;
+  outline: none;
+}
+
+.chamber-add input:focus,
+.auth-form input:focus {
+  border-bottom-color: var(--ink);
+}
+
+.chamber-add button {
+  flex: 0 0 auto;
+  background: var(--ink);
+  color: var(--paper);
+  border: 0;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 140ms var(--ease-out), background-color 180ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chamber-add button:hover {
+    background: #2a2a2a;
+  }
+
+  .chamber-list button:hover {
+    color: #8c281c;
+  }
+
+  .chamber-filters button:hover {
+    color: var(--ink);
+    border-color: rgba(0, 0, 0, 0.22);
+  }
+
+  .chamber-post a:hover {
+    opacity: 0.72;
+  }
+
+  .chamber-post footer button:hover {
+    opacity: 0.65;
+  }
+
+  .auth-form .switch:hover {
+    color: var(--ink);
+  }
+}
+
+.chamber-list {
+  list-style: none;
+  margin: 0 0 1.75rem;
+  padding: 0;
+}
+
+.chamber-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+
+.chamber-list li.chamber-empty-kw {
+  color: var(--mute);
+  display: block;
+}
+
+.chamber-list small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--mute);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.chamber-list button {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.55rem;
+  flex-shrink: 0;
+  transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.chamber-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.35rem;
+  margin: 0 0 1.4rem;
+}
+
+.chamber-filters button {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--mute);
+  font: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.chamber-filters button.on {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.chamber-label {
+  margin: 0 0 0.55rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.chamber-meta {
+  color: var(--mute);
+  font-size: 0.92rem;
+  margin: -0.4rem 0 1.5rem;
+}
+
+.chamber-post {
+  padding: 1.35rem 0 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.chamber-post header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-bottom: 0.55rem;
+}
+
+.chamber-post .tag {
+  color: var(--signal);
+  font-weight: 600;
+}
+
+.chamber-post a {
+  font-family: "Bodoni Moda", serif;
+  font-size: 1.28rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+  transition: opacity 160ms var(--ease-out);
+}
+
+.chamber-post p {
+  margin: 0.55rem 0 0;
+  color: var(--mute);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chamber-post footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: var(--mute);
+}
+
+.chamber-post footer button {
+  background: none;
+  border: 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 160ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.chamber-draft {
+  margin-top: 1rem;
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  position: relative;
+}
+
+.chamber-draft button {
+  position: absolute;
+  top: 0.85rem;
+  right: 0;
+  background: none;
+  border: 0;
+  color: var(--mute);
+  cursor: pointer;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.chamber-empty {
+  padding: 2.5rem 0;
+  color: var(--mute);
+  border-top: 1px solid var(--line);
+}
+
+.chamber-rail dl {
+  margin: 0;
+}
+
+.chamber-rail div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.chamber-rail dt {
+  color: var(--mute);
+}
+
+.auth-wrap {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-end;
+  padding: clamp(2rem, 8vh, 5rem) clamp(1.4rem, 5vw, 3.5rem);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.auth-form h1 {
+  margin: 0 0 0.6rem;
+  font-family: "Bodoni Moda", serif;
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6vw, 3.6rem);
+  letter-spacing: -0.03em;
+}
+
+.auth-form > p {
+  margin: 0 0 2rem;
+  color: var(--mute);
+  max-width: 32ch;
+  line-height: 1.5;
+}
+
+.auth-form label {
+  display: block;
+  margin: 1.1rem 0 0.25rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.auth-form .hm-cta {
+  margin-top: 1.75rem;
+  width: 100%;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.auth-form .switch {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  background: none;
+  border: 0;
+  color: var(--mute);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 160ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.google-auth {
+  display: block;
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: 0.85rem;
+  transition: transform 140ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+
+.google-auth:active {
+  transform: scale(0.97);
+}
+
+.auth-err {
+  color: #8c281c;
+  font-size: 0.9rem;
+  margin-top: 0.85rem;
+}
+
+@media (min-width: 980px) {
+  .chamber-grid {
+    grid-template-columns: 240px minmax(0, 1fr) 240px;
+  }
+
+  .chamber-side {
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .chamber-rail {
+    border-left: 1px solid var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chamber-actions button,
+  .chamber-actions a,
+  .chamber-actions .scan,
+  .chamber-add button,
+  .chamber-list button,
+  .chamber-filters button,
+  .chamber-post a,
+  .chamber-post footer button,
+  .auth-form .hm-cta,
+  .auth-form .switch {
+    transition: opacity 160ms var(--ease-out), color 160ms var(--ease-out), background-color 160ms var(--ease-out),
+      border-color 160ms var(--ease-out);
+  }
+
+  .chamber-actions button:active,
+  .chamber-actions a:active,
+  .chamber-actions .scan:active,
+  .hm-cta:active,
+  .chamber-add button:active,
+  .chamber-list button:active,
+  .chamber-filters button:active,
+  .chamber-post footer button:active,
+  .auth-form button[type="submit"]:active,
+  .auth-form .switch:active {
+    transform: none;
+  }
+}

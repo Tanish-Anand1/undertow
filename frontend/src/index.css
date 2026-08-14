@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+@theme {
+  --font-display: "Cabinet Grotesk", "Syne", sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --color-ink: #070a0c;
+  --color-ink-2: #0d1216;
+  --color-ink-3: #1a222b;
+  --color-foam: #e7eef2;
+  --color-mist: #8a9aa8;
+  --color-signal: #5eead4;
+  --color-signal-dim: #2dd4bf66;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #ffffff;
+}
+
+html.hm-root,
+html.hm-root body,
+html.hm-root #root {
+  background: #ffffff;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #111111;
+  font-family: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
