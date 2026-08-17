@@ -117,3 +117,18 @@ class Scan(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=func.now()
     )
+
+
+class SiteVisitor(Base):
+    __tablename__ = "site_visitors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    visitor_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    hits: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    cta_clicks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    first_seen: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=func.now()
+    )
+    last_seen: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=func.now()
+    )

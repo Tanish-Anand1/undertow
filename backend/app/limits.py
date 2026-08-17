@@ -93,3 +93,21 @@ def allow_auth_attempt(key: str) -> bool:
     count += 1
     _memory[redis_key] = (count, start)
     return count <= max_n
+
+
+def allow_presence(ip: str) -> bool:
+    max_n, window = 80, 600
+    redis_key = f"presence:{ip}"
+    r = _client()
+    if r:
+        n = r.incr(redis_key)
+        if n == 1:
+            r.expire(redis_key, window)
+        return n <= max_n
+    now = time.time()
+    count, start = _memory.get(redis_key, (0, now))
+    if now - start >= window:
+        count, start = 0, now
+    count += 1
+    _memory[redis_key] = (count, start)
+    return count <= max_n

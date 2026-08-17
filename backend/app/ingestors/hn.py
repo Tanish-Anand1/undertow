@@ -22,7 +22,7 @@ class HackerNewsIngestor(Ingestor):
 
     def _search(self, keyword: str, tags: str, limit: int, seen: set[str]) -> list[RawPost]:
         try:
-            with httpx.Client(timeout=8.0) as client:
+            with httpx.Client(timeout=5.0) as client:
                 resp = client.get(
                     self.API_URL,
                     params={

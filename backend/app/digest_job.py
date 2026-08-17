@@ -28,7 +28,7 @@ def run_digest(db: Session, user_id: int | None = None) -> dict:
             skipped += 1
             continue
         body = build_digest_email_body(user.email, digest)
-        send_email(user.email, "Your Undertow daily digest", body)
+        send_email(user.email, "Your Sudo daily digest", body)
         user.last_digest_at = datetime.now(timezone.utc)
         sent += 1
     db.commit()

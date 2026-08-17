@@ -39,7 +39,7 @@ def _providers() -> list[tuple[LLMProvider, str]]:
                     model=settings.openrouter_model,
                     extra_headers={
                         "HTTP-Referer": "http://localhost:5173",
-                        "X-Title": "Undertow",
+                        "X-Title": "Sudo",
                     },
                 ),
                 settings.openrouter_api_key,

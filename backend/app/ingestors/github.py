@@ -16,7 +16,7 @@ class GitHubIngestor(Ingestor):
     def fetch_for_keyword(self, keyword: str, limit: int = 25) -> list[RawPost]:
         q = f"{keyword} is:issue is:open"
         try:
-            with httpx.Client(timeout=12.0) as client:
+            with httpx.Client(timeout=5.0) as client:
                 resp = client.get(
                     self.API_URL,
                     params={"q": q, "sort": "updated", "order": "desc", "per_page": min(limit, 30)},

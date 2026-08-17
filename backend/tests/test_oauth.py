@@ -38,7 +38,7 @@ def test_google_callback_success(monkeypatch) -> None:
 
     state = make_oauth_state()
 
-    def fake_exchange(_code: str) -> dict:
+    def fake_exchange(_code: str, _redirect: str | None = None) -> dict:
         return {"email": "oauth-user@example.com", "sub": "google-sub-123", "email_verified": True}
 
     monkeypatch.setattr("app.routers.auth.exchange_google_code", fake_exchange)

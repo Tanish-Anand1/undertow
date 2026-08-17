@@ -29,12 +29,15 @@ def test_login_wrong_password() -> None:
     assert bad.status_code == 401
 
 
-def test_keyword_cap_returns_400() -> None:
+def test_keyword_cap_returns_400(monkeypatch) -> None:
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_keywords_per_user", 3)
     email = f"cap-{uuid.uuid4().hex[:10]}@example.com"
     client.post("/auth/register", json={"email": email, "password": "password123"})
     token = client.post("/auth/login", data={"username": email, "password": "password123"}).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    for i in range(15):
+    for i in range(3):
         res = client.post("/watchlists", headers=headers, json={"keyword": f"kw-{i}-{uuid.uuid4().hex[:4]}", "platforms": ["hn"]})
         assert res.status_code == 201
     res = client.post("/watchlists", headers=headers, json={"keyword": "one-too-many", "platforms": ["hn"]})

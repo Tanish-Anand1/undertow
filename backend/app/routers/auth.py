@@ -13,12 +13,12 @@ from app.emailer import send_email
 from app.limits import allow_auth_attempt
 from app.models import User
 from app.oauth_google import (
-    consume_oauth_state,
     exchange_google_code,
     google_authorize_url,
     google_configured,
     issue_frontend_redirect,
     make_oauth_state,
+    read_oauth_state,
     upsert_google_user,
 )
 from app.schemas import ForgotPasswordIn, ResetPasswordIn, TokenOut, UserCreate, UserOut, VerifyEmailIn
@@ -53,7 +53,7 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
         link = f"{settings.public_base_url}/app?verify={token}"
         send_email(
             user.email,
-            "Verify your Undertow email",
+            "Verify your Sudo email",
             f"Confirm this address to finish signup:\n{link}\n",
         )
     return user
@@ -88,7 +88,7 @@ def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)) ->
         link = f"{settings.public_base_url}/app?reset={token}"
         send_email(
             user.email,
-            "Reset your Undertow password",
+            "Reset your Sudo password",
             f"Use this link within two hours:\n{link}\n",
         )
     return {"ok": True}
@@ -144,10 +144,13 @@ def google_callback(
 ) -> RedirectResponse:
     settings = get_settings()
     fail = f"{settings.public_base_url.rstrip('/')}/app#google_error=1"
-    if error or not code or not consume_oauth_state(state or ""):
+    if error:
+        return RedirectResponse(fail, status_code=302)
+    payload = read_oauth_state(state or "")
+    if not code or not payload:
         return RedirectResponse(fail, status_code=302)
     try:
-        info = exchange_google_code(code)
+        info = exchange_google_code(code, payload.get("redirect_uri"))
         user = upsert_google_user(db, info)
     except HTTPException:
         return RedirectResponse(fail, status_code=302)

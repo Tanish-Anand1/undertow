@@ -68,7 +68,20 @@ pnpm run dev -- --host 127.0.0.1 --port 5173
 - http://127.0.0.1:5173/ landing
 - http://127.0.0.1:5173/app product
 
-## Google sign-in
+## Deploy
+
+- **Frontend (Vercel):** https://undertow-zeta.vercel.app
+- **GitHub:** https://github.com/Tanish-Anand1/undertow
+- **Backend (Render):** open https://dashboard.render.com/blueprint/new and connect that repo. It uses `render.yaml` (API, worker, clock, Redis, Postgres).
+
+After Render is up, set:
+
+- `CORS_ORIGINS=https://undertow-zeta.vercel.app`
+- `PUBLIC_BASE_URL=https://undertow-zeta.vercel.app`
+- LLM / X / SendGrid / Google OAuth secrets in the Render dashboard
+- Google redirect URI: `https://undertow-api.onrender.com/auth/google/callback`
+
+Vercel `VITE_API_URL` is already set to `https://undertow-api.onrender.com`. If Render gives you a different hostname, update that env and redeploy.
 
 Create an OAuth client in Google Cloud Console (Web application). Authorized redirect URI:
 

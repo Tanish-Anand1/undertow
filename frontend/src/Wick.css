@@ -1,0 +1,203 @@
+.wick-mark {
+  display: block;
+  overflow: visible;
+}
+
+.wick-body {
+  transform-origin: 60px 128px;
+  transform-box: fill-box;
+  animation: wick-breathe 4s ease-in-out infinite;
+}
+
+.wick-eye {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: wick-blink var(--blink, 6.4s) ease-in-out infinite;
+}
+
+.wick-eyes .wick-eye:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.wick-arcs {
+  transform-origin: 88px 42px;
+  transform-box: fill-box;
+  animation: wick-arc 4s ease-in-out infinite;
+}
+
+.wick--typing .wick-body {
+  animation: wick-breathe 4s ease-in-out infinite, wick-lean 320ms ease-out forwards;
+}
+
+.wick--typing .wick-arcs {
+  animation: wick-arc-fast 0.7s ease-in-out infinite;
+}
+
+.wick--scanning .wick-body {
+  animation: wick-dive 1.6s ease-in-out infinite;
+}
+
+.wick--scanning .wick-arcs {
+  animation: wick-arc-fast 0.55s ease-in-out infinite;
+}
+
+.wick--found .wick-body {
+  animation: wick-lean-in 380ms ease-out;
+}
+
+.wick--found .wick-eye {
+  animation: wick-double-blink 420ms ease-in-out;
+}
+
+.wick--resting .wick-eye {
+  transform: scaleY(0.35);
+  animation: none;
+}
+
+.wick--resting .wick-body {
+  animation: wick-breathe 6.5s ease-in-out infinite;
+}
+
+.wick--resting .wick-arcs {
+  opacity: 0.28;
+  animation: none;
+}
+
+@keyframes wick-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.018);
+  }
+}
+
+@keyframes wick-blink {
+  0%,
+  86%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  90% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes wick-double-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  22%,
+  62% {
+    transform: scaleY(0.08);
+  }
+  40%,
+  80% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes wick-arc {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes wick-arc-fast {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
+@keyframes wick-lean {
+  to {
+    transform: rotate(-9deg) scale(1.01);
+  }
+}
+
+@keyframes wick-lean-in {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.05) translateY(2px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes wick-dive {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(7deg) translateY(5px);
+  }
+}
+
+.wick-line {
+  margin: 0.45rem 0 0;
+  color: var(--mute);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  min-height: 1.35em;
+}
+
+.wick-dock {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.85rem;
+  margin: 0 0 1.15rem;
+}
+
+.wick-dock .wick-mark {
+  width: 3.6rem;
+  flex-shrink: 0;
+}
+
+.wick-auth {
+  width: 4.4rem;
+  margin-bottom: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wick-body,
+  .wick-eye,
+  .wick-arcs,
+  .wick--typing .wick-body,
+  .wick--typing .wick-arcs,
+  .wick--scanning .wick-body,
+  .wick--scanning .wick-arcs,
+  .wick--found .wick-body,
+  .wick--found .wick-eye,
+  .wick--resting .wick-body {
+    animation: none;
+  }
+
+  .wick--typing .wick-body {
+    transform: rotate(-7deg) translateX(3px);
+  }
+
+  .wick--scanning .wick-body {
+    transform: rotate(9deg) translateY(5px);
+  }
+
+  .wick--found .wick-body {
+    transform: translateY(-2px) scale(1.03);
+  }
+}

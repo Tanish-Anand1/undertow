@@ -1,24 +1,278 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="hm-root">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sudo. Listen where your users already rant</title>
+    <meta
+      name="description"
+      content="Sudo watches Hacker News, GitHub, and X for the words you care about. It tags pain from noise, ranks what is worth a look, and drafts a reply. You still send it."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Sudo. Listen where your users already rant" />
+    <meta
+      property="og:description"
+      content="Sudo watches Hacker News, GitHub, and X for the words you care about. It tags pain from noise, ranks what is worth a look, and drafts a reply. You still send it."
+    />
+    <meta name="twitter:card" content="summary" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link rel="preconnect" href="https://undertow-api.vercel.app" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400;1,6..96,600&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
     <link
-      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&f[]=jet-brains-mono@400,500&display=swap"
       rel="stylesheet"
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
-    <title>Undertow. Listen where your users already rant</title>
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&display=swap" />
+      <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600&display=swap" />
+    </noscript>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Sudo",
+        "applicationCategory": "BusinessApplication",
+        "description": "Sudo watches Hacker News, GitHub, and X for founder keywords, tags pain from noise, and drafts replies you still send yourself.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div class="hm">
+      <header class="hm-nav">
+        <a class="hm-mark" href="#top">Sudo</a>
+        <nav class="hm-links" aria-label="Primary">
+          <a href="#method">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="/app">Log in</a>
+          <a class="hm-cta hm-cta-nav" href="/app">Start free</a>
+        </nav>
+      </header>
+
+      <main id="top">
+        <section class="lp-hero">
+          <div class="lp-hero-copy">
+            <p class="hm-folio">Sudo</p>
+            <h1>The complaints are already public. <span>Most founders never hear them.</span></h1>
+            <p class="hm-lede">
+              Sudo watches HN, GitHub, and X for the words you care about. Wick listens in the background, tags pain from noise, ranks what is worth a look, and drafts a reply. You still send it.
+            </p>
+            <div class="lp-cta-row">
+              <a class="hm-cta" href="/app">Start free</a>
+              <a class="lp-ghost" href="#method">See how it works</a>
+            </div>
+          </div>
+          <figure class="lp-hero-wick" aria-label="Wick">
+            <svg class="wick-mark wick--idle" viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g class="wick-body">
+                <circle cx="60" cy="42" r="26" stroke="#111" stroke-width="1.4" />
+                <path d="M42 42h36" stroke="#111" stroke-width="1.4" />
+                <g class="wick-eyes">
+                  <circle class="wick-eye" cx="51" cy="42" r="2.2" fill="#111" />
+                  <circle class="wick-eye" cx="69" cy="42" r="2.2" fill="#111" />
+                </g>
+                <path d="M48 78c4-12 8-18 12-18s8 6 12 18" stroke="#111" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M44 128c6-28 10-42 16-42s10 14 16 42" stroke="#111" stroke-width="1.4" stroke-linejoin="round" />
+                <g class="wick-arcs">
+                  <path d="M88 40c10 2 16 10 16 20" stroke="#111" stroke-width="1.2" stroke-linecap="round" />
+                  <path d="M92 36c12 4 20 14 20 26" stroke="#111" stroke-width="1.2" stroke-linecap="round" opacity="0.45" />
+                </g>
+              </g>
+            </svg>
+            <figcaption>Wick. Listening.</figcaption>
+          </figure>
+        </section>
+
+        <section class="lp-preview" aria-label="App preview">
+          <div class="lp-preview-frame">
+            <header>
+              <strong>Sudo</strong>
+              <span>hn · x · github</span>
+              <em>Scan now</em>
+            </header>
+            <div class="lp-preview-grid">
+              <aside>
+                <p>Watch</p>
+                <ul>
+                  <li>auth friction</li>
+                  <li>invite emails</li>
+                  <li>onboarding quiz</li>
+                </ul>
+              </aside>
+              <div>
+                <article>
+                  <header><span>HN</span><span>pain</span></header>
+                  <p>Auth tickets doubled after the OAuth change.</p>
+                  <small>Wick actually stopped and read this one twice.</small>
+                </article>
+                <article>
+                  <header><span>GitHub</span><span>question</span></header>
+                  <p>Is anyone else blocked on invite emails?</p>
+                </article>
+                <article>
+                  <header><span>X</span><span>complaint</span></header>
+                  <p>The onboarding quiz dumps you into a blank dashboard.</p>
+                </article>
+                <article>
+                  <header><span>HN</span><span>praise</span></header>
+                  <p>This changelog actually told me what broke.</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="lp-trust" aria-label="Sources">
+          <span><b>01</b> Hacker News</span>
+          <span><b>02</b> GitHub</span>
+          <span><b>03</b> X</span>
+          <span class="lp-soon"><b>04</b> Reddit coming soon</span>
+        </section>
+
+        <section class="lp-steps" id="method">
+          <p class="hm-folio">How it works</p>
+          <h2>Three moves. Then you wait for the feed.</h2>
+          <ol>
+            <li>
+              <span class="hm-step">01</span>
+              <strong>Tell Wick what to watch</strong>
+              Add keywords. Wick starts listening across HN, GitHub, and X. Not the whole web. Not LinkedIn.
+            </li>
+            <li>
+              <span class="hm-step">02</span>
+              <strong>Wick surfaces what matters</strong>
+              Tagged pain, question, complaint, and praise land in your feed, ranked by relevance.
+            </li>
+            <li>
+              <span class="hm-step">03</span>
+              <strong>Draft, review, reply</strong>
+              Sudo drafts a reply. You edit and send. Nothing goes out without you.
+            </li>
+          </ol>
+        </section>
+
+        <section class="lp-quote lp-quote--pending" aria-label="Testimonial">
+          <blockquote>
+            The complaints were already in the thread. I was just never in the room.
+          </blockquote>
+          <figcaption>The thread was public. The signal was not.</figcaption>
+        </section>
+
+        <section class="lp-grid" id="features">
+          <p class="hm-folio">The work</p>
+          <h2>What Sudo actually does</h2>
+          <div class="lp-cards">
+            <article>
+              <h3>Crawl once</h3>
+              <p>A unique keyword is fetched once, then matched to every watchlist that shares it. No duplicate crawls.</p>
+            </article>
+            <article>
+              <h3>Tagged relevance</h3>
+              <p>Posts land as pain, question, complaint, or praise, with a score so the feed is not a firehose.</p>
+            </article>
+            <article>
+              <h3>Drafts you still own</h3>
+              <p>Ask for a reply. Sudo writes. You humanize. You send. The post never leaves on its own.</p>
+            </article>
+            <article>
+              <h3>Digest, not noise</h3>
+              <p>A daily or weekly note of what surfaced. You decide what is worth a thread.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="lp-use">
+          <p class="hm-folio">Designed for you</p>
+          <h2>Same tool. Different depth.</h2>
+          <div class="lp-cards lp-cards-3">
+            <article>
+              <h3>Early-stage</h3>
+              <p>Validating an idea. Watch the category words. See if the pain is real before you build the polite version of it.</p>
+            </article>
+            <article>
+              <h3>Growth-stage</h3>
+              <p>Tracking complaints in public. Catch the OAuth thread before it becomes a support queue.</p>
+            </article>
+            <article>
+              <h3>Solo builders</h3>
+              <p>Research and support in one pass. Scan, read, draft. Sudo is the extra pair of ears you do not hire.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="lp-price" id="pricing">
+          <p class="hm-folio">Pricing</p>
+          <h2>Pricing. Coming soon.</h2>
+          <p>
+            Start free while we settle the paid line. No fake tiers here. When there is a price, it will sit in this spot.
+          </p>
+          <a class="hm-cta" href="/app">Start free</a>
+        </section>
+
+        <section class="lp-faq" id="faq">
+          <p class="hm-folio">FAQ</p>
+          <h2>The short answers</h2>
+          <div>
+            <details>
+              <summary>What sources are live?</summary>
+              <p>Hacker News, GitHub, and X. Sudo listens there now. Reddit is next, not live yet.</p>
+            </details>
+            <details>
+              <summary>Is Reddit coming?</summary>
+              <p>
+                Yes. It is wired in the product, held until credentials and rate limits are honest. You will see it as a source when it is actually fetching.
+              </p>
+            </details>
+            <details>
+              <summary>Do drafts send themselves?</summary>
+              <p>No. Sudo drafts. You edit. You send. Nothing leaves without you.</p>
+            </details>
+            <details>
+              <summary>How does shared-crawl matching work?</summary>
+              <p>
+                Each unique keyword is crawled once. If three founders watch “auth friction,” Sudo does not fetch it three times. The post is stored once, then linked to every watchlist that shares the term.
+              </p>
+            </details>
+            <details>
+              <summary>What do you keep?</summary>
+              <p>
+                Public posts matched to your keywords, your account, and the drafts you ask for. We do not scrape LinkedIn. We do not crawl the whole web. We do not sell the feed.
+              </p>
+            </details>
+          </div>
+        </section>
+
+        <section class="lp-close">
+          <p class="hm-folio">Begin</p>
+          <h2>The thread exists. <span>The keyword is the door.</span></h2>
+          <p>Add one word. Hit scan. Read what comes back.</p>
+          <a class="hm-cta" href="/app">Start free</a>
+        </section>
+      </main>
+
+      <footer class="lp-foot">
+        <a class="hm-mark" href="#top">Sudo</a>
+        <p>Listen where your users already rant.</p>
+        <nav aria-label="Footer">
+          <a href="#method">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://tanishanand.dev/" target="_blank" rel="noopener noreferrer">Founder</a>
+          <a href="/app">Log in</a>
+        </nav>
+        <small>© 2026 Sudo</small>
+      </footer>
+    </div>
+    <script type="module" src="/src/landing-entry.ts"></script>
   </body>
 </html>

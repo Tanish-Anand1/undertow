@@ -1,16 +1,16 @@
-import { Link } from 'react-router-dom'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { HIGH_SIGNAL, statusLine, wickHeard, wickTwice, wickWelcomeBack } from './copy'
+import { WickMark, type WickMood } from './Wick'
+import './Wick.css'
 import { api, API_BASE, type Digest, type Post, type Stats, type Watchlist } from './api'
-import './landing/Landing.css'
 import './Dashboard.css'
 
 const PLATFORMS = [
-  { id: '', label: 'All' },
-  { id: 'hn', label: 'HN' },
-  { id: 'x', label: 'X' },
-  { id: 'github', label: 'GitHub' },
-  { id: 'reddit', label: 'Reddit' },
+  { id: '', label: 'All', soon: false },
+  { id: 'hn', label: 'HN', soon: false },
+  { id: 'x', label: 'X', soon: false },
+  { id: 'github', label: 'GitHub', soon: false },
+  { id: 'reddit', label: 'Reddit', soon: true },
 ] as const
 
 const TAGS = [
@@ -20,6 +20,7 @@ const TAGS = [
   { id: 'complaint', label: 'Complaint' },
   { id: 'praise', label: 'Praise' },
 ] as const
+
 
 function safeHref(url: string | null | undefined) {
   if (!url) return undefined
@@ -84,17 +85,18 @@ function AuthScreen({ onAuthed }: { onAuthed: () => void }) {
   return (
     <div className="hm chamber">
       <header className="hm-nav">
-        <Link className="hm-mark" to="/">
-          Undertow
-        </Link>
+        <a className="hm-mark" href="/">
+          Sudo
+        </a>
         <nav className="hm-links" aria-label="Primary">
-          <Link to="/">Home</Link>
+          <a href="/">Home</a>
         </nav>
       </header>
       <div className="auth-wrap">
         <form onSubmit={submit} className="auth-form">
+          <WickMark mood="idle" className="wick-auth" />
           <h1>{mode === 'login' ? 'Enter.' : 'Begin.'}</h1>
-          <p>The chamber is private. Same paper, same type. The listening work happens here.</p>
+          <p>The feed is private. Wick is already listening.</p>
           <label htmlFor="email">Email</label>
           <input
             id="email"
@@ -142,6 +144,11 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   const [didPrime, setDidPrime] = useState(false)
+  const [keywordFocus, setKeywordFocus] = useState(false)
+  const [heard, setHeard] = useState('')
+  const [foundPulse, setFoundPulse] = useState(false)
+  const [greeting, setGreeting] = useState('')
+  const prevHigh = useRef(0)
 
   useEffect(() => {
     document.documentElement.classList.add('hm-root')
@@ -151,7 +158,7 @@ export default function Dashboard() {
   const livePlatforms = useMemo(() => {
     const set = new Set<string>()
     watchlists.forEach((w) => w.platforms.forEach((p) => set.add(p)))
-    return ['hn', 'x', 'github', 'reddit'].map((p) => ({ id: p, on: set.has(p) }))
+    return ['hn', 'x', 'github'].map((p) => ({ id: p, on: set.has(p) }))
   }, [watchlists])
 
   async function refresh() {
@@ -165,6 +172,15 @@ export default function Dashboard() {
     setPosts(f)
     setDigest(d)
     setStats(s)
+    if (!sessionStorage.getItem('sudo_greeted')) {
+      sessionStorage.setItem('sudo_greeted', '1')
+      const prev = localStorage.getItem('sudo_seen_at')
+      const n = prev
+        ? f.filter((p) => new Date(p.ingested_at).getTime() > new Date(prev).getTime()).length
+        : 0
+      if (prev) setGreeting(wickWelcomeBack(n))
+      localStorage.setItem('sudo_seen_at', new Date().toISOString())
+    }
   }
 
   useEffect(() => {
@@ -177,14 +193,6 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, platform, tag])
 
-  useEffect(() => {
-    if (!authed || !didPrime || scanning) return
-    if (watchlists.length && posts.length === 0) {
-      scanNow()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [didPrime, watchlists.length])
-
   async function addWatchlist(e: FormEvent) {
     e.preventDefault()
     const value = keyword.trim()
@@ -196,10 +204,10 @@ export default function Dashboard() {
     setError('')
     setPlatform('')
     try {
-      const created = await api.createWatchlist(value, ['hn', 'x', 'github', 'reddit'])
+      const created = await api.createWatchlist(value, ['hn', 'x', 'github'])
       setWatchlists((prev) => [created, ...prev])
+      setHeard(wickHeard(value))
       setKeyword('')
-      scanNow()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add keyword')
     }
@@ -231,6 +239,45 @@ export default function Dashboard() {
     }
   }
 
+  useEffect(() => {
+    if (!keywordFocus) return
+    const t = window.setTimeout(() => {
+      setHeard(keyword.trim() ? wickHeard(keyword) : '')
+    }, 550)
+    return () => window.clearTimeout(t)
+  }, [keyword, keywordFocus])
+
+  useEffect(() => {
+    const n = posts.filter((p) => (p.relevance_score ?? 0) >= HIGH_SIGNAL).length
+    if (!didPrime) {
+      prevHigh.current = n
+      return
+    }
+    if (n > prevHigh.current) {
+      setFoundPulse(true)
+      const t = window.setTimeout(() => setFoundPulse(false), 900)
+      prevHigh.current = n
+      return () => window.clearTimeout(t)
+    }
+    prevHigh.current = n
+  }, [posts, didPrime])
+
+  const wickMood: WickMood = scanning
+    ? 'scanning'
+    : stats?.x_circuit_open
+      ? 'resting'
+      : foundPulse
+        ? 'found'
+        : keywordFocus
+          ? 'typing'
+          : 'idle'
+
+  const wickSaid = scanning
+    ? statusLine('scan')
+    : stats?.x_circuit_open
+      ? statusLine('x')
+      : heard || greeting || (!watchlists.length ? statusLine('empty') : '')
+
   async function onDraft(id: number) {
     setDraft({ id, text: 'Drafting…' })
     try {
@@ -246,9 +293,9 @@ export default function Dashboard() {
   return (
     <div className="hm chamber">
       <header className="chamber-nav">
-        <Link className="hm-mark" to="/">
-          Undertow
-        </Link>
+        <a className="hm-mark" href="/">
+          Sudo
+        </a>
         <div className="chamber-live" aria-label="Sources on this watchlist">
           {livePlatforms.map((p) => (
             <span key={p.id}>
@@ -258,10 +305,15 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="chamber-actions">
-          <button className="scan" onClick={scanNow} disabled={scanning}>
+          <button
+            className="scan"
+            onClick={scanNow}
+            disabled={scanning || !watchlists.length}
+            aria-busy={scanning}
+          >
             {scanning ? 'Scanning' : 'Scan now'}
           </button>
-          <Link to="/">Home</Link>
+          <a href="/">Home</a>
           <button
             type="button"
             onClick={() => {
@@ -275,17 +327,24 @@ export default function Dashboard() {
       </header>
 
       {error && <div className="chamber-err">{error}</div>}
+      {stats?.x_circuit_open && <div className="chamber-wick-banner">{statusLine('x')}</div>}
 
       <div className="chamber-grid">
-        <aside className="chamber-side">
+        <section className="chamber-side">
+          <div className="wick-dock">
+            <WickMark mood={wickMood} />
+            <p className="wick-line">{wickSaid}</p>
+          </div>
           <h2>Watch</h2>
           <p className="chamber-meta">
-            Add the words you care about. Undertow searches HN, X, and GitHub for those words, not the whole web.
+            Add as many keywords as you want, then hit Scan when you are ready. Sudo searches HN, X, and GitHub for those words.
           </p>
           <form onSubmit={addWatchlist} className="chamber-add">
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
+              onFocus={() => setKeywordFocus(true)}
+              onBlur={() => setKeywordFocus(false)}
               placeholder="Add a keyword"
               aria-label="Add a keyword"
               autoComplete="off"
@@ -304,10 +363,16 @@ export default function Dashboard() {
                 </button>
               </li>
             ))}
-            {!watchlists.length && (
-              <li className="chamber-empty-kw">Nothing watched yet. Type a keyword and press Add.</li>
-            )}
+            {!watchlists.length && <li className="chamber-empty-kw">{statusLine('empty')}</li>}
           </ul>
+          <button
+            type="button"
+            className="chamber-scan-inline"
+            onClick={scanNow}
+            disabled={scanning || !watchlists.length}
+          >
+            {scanning ? 'Scanning' : watchlists.length ? 'Scan these keywords' : 'Add a keyword first'}
+          </button>
 
           <p className="chamber-label">Source</p>
           <div className="chamber-filters">
@@ -316,9 +381,15 @@ export default function Dashboard() {
                 key={p.id || 'all'}
                 type="button"
                 className={platform === p.id ? 'on' : ''}
-                onClick={() => setPlatform(p.id)}
+                disabled={p.soon}
+                title={p.soon ? 'Reddit coming soon' : undefined}
+                onClick={() => {
+                  if (p.soon) return
+                  setPlatform(p.id)
+                }}
               >
                 {p.label}
+                {p.soon ? <i>soon</i> : null}
               </button>
             ))}
           </div>
@@ -335,18 +406,26 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
-        </aside>
+        </section>
 
         <main className="chamber-feed">
           <h2>Feed</h2>
-          <p className="chamber-meta">{posts.length} matched posts</p>
-          {posts.map((p, i) => (
-            <article className="chamber-post" key={`${p.id}-${p.watchlist_id ?? ''}-${p.source}-${i}`}>
+          <p className="chamber-meta" aria-live="polite">
+            {scanning ? statusLine('scan') : `${posts.length} matched posts`}
+          </p>
+          {posts.map((p, i) => {
+            const twice = (p.relevance_score ?? 0) >= HIGH_SIGNAL
+            return (
+            <article
+              className={`chamber-post${twice ? ' chamber-post--twice' : ''}`}
+              key={`${p.id}-${p.watchlist_id ?? ''}-${p.source}-${i}`}
+            >
               <header>
                 <span>{p.source}</span>
                 <span>{timeAgo(p.posted_at || p.ingested_at)}</span>
                 {p.tag && <span className="tag">{p.tag}</span>}
                 <span>rel {Math.round(p.relevance_score ?? 0)}</span>
+                {twice && <span className="wick-twice">{wickTwice(p.keyword)}</span>}
               </header>
               {safeHref(p.url) ? (
                 <a href={safeHref(p.url)} target="_blank" rel="noopener noreferrer">
@@ -368,19 +447,22 @@ export default function Dashboard() {
               {draft?.id === p.id && (
                 <div className="chamber-draft">
                   <button type="button" onClick={() => setDraft(null)} aria-label="Close draft">
-                    <X size={14} />
+                    ×
                   </button>
                   {draft.text}
                 </div>
               )}
             </article>
-          ))}
+            )
+          })}
           {!posts.length && (
-            <div className="chamber-empty">No signals yet. Add a keyword and scan.</div>
+            <div className="chamber-empty">
+              {scanning ? statusLine('scan') : watchlists.length ? 'Nothing on the wire yet. Hit Scan when you are ready.' : statusLine('empty')}
+            </div>
           )}
         </main>
 
-        <aside className="chamber-rail">
+        <section className="chamber-rail">
           <h2>Digest</h2>
           <p className="chamber-meta">
             Last {digest?.hours ?? 24}h · score ≥ 60 · {digest?.total ?? 0} posts
@@ -414,7 +496,8 @@ export default function Dashboard() {
               <dd>{stats?.replies_drafted ?? 0}</dd>
             </div>
           </dl>
-        </aside>
+          {stats?.x_circuit_open && <p className="chamber-wick-note">{statusLine('x')}</p>}
+        </section>
       </div>
     </div>
   )

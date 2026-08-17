@@ -1,15 +1,14 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import Dashboard from './Dashboard'
-import Landing from './landing/Landing'
+import { BrowserRouter } from 'react-router-dom'
+import { AppRoutes } from './AppRoutes'
+import { Analytics } from '@vercel/analytics/react'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/app" element={<Dashboard />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+      <Analytics />
+    </>
   )
 }

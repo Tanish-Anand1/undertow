@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.config import get_settings
 from app.database import get_db
-from app.jobs import enqueue_scan
+from app.jobs import advance_scan, enqueue_scan
+from app.limits import circuit_open
 from app.models import Scan, User
 from app.schemas import PostOut, ScanOut, StatsOut
 from app.security import sanitize_platform, sanitize_tag
@@ -57,7 +58,8 @@ def stats(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StatsOut:
-    return StatsOut(**get_user_stats(db, user.id))
+    data = get_user_stats(db, user.id)
+    return StatsOut(**data, x_circuit_open=circuit_open("x"))
 
 
 def _scan_out(scan: Scan) -> ScanOut:
@@ -104,4 +106,10 @@ def ingest_status(
     scan = db.get(Scan, scan_id)
     if not scan or (scan.user_id and scan.user_id != user.id):
         raise HTTPException(status_code=404, detail="Scan not found")
+    if scan.status in ("queued", "running"):
+        advance_scan(scan.id, max_jobs=1)
+        db.expire_all()
+        scan = db.get(Scan, scan_id)
+        if not scan:
+            raise HTTPException(status_code=404, detail="Scan not found")
     return _scan_out(scan)

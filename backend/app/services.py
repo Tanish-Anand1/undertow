@@ -75,7 +75,7 @@ def ingest_source_keyword(
     db: Session,
     ingestor: Ingestor,
     keyword: str,
-    limit_per_keyword: int = 30,
+    limit_per_keyword: int = 10,
 ) -> dict[str, int]:
     """Crawl one source for one keyword. Classify each post at most once."""
     needle = keyword.strip().lower()

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import secrets
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 import httpx
 from fastapi import HTTPException
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.auth import create_access_token, hash_password
 from app.config import get_settings
-from app.limits import _client
 from app.models import User
 
 GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -22,41 +23,50 @@ def google_configured() -> bool:
     return bool(settings.google_client_id and settings.google_client_secret)
 
 
-def make_oauth_state() -> str:
-    state = secrets.token_urlsafe(24)
-    r = _client()
-    if r:
-        r.setex(f"oauth:google:{state}", 600, "1")
-    else:
-        # Fallback so local-without-redis still works for a single process.
-        from app.limits import _memory
-        import time
+def callback_uri() -> str:
+    settings = get_settings()
+    if settings.google_redirect_uri:
+        return settings.google_redirect_uri.rstrip("/")
+    return "http://127.0.0.1:8000/auth/google/callback"
 
-        _memory[f"oauth:google:{state}"] = (int(time.time()) + 600, time.time())
-    return state
+
+def make_oauth_state() -> str:
+    settings = get_settings()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+    return jwt.encode(
+        {
+            "purpose": "google_oauth",
+            "redirect_uri": callback_uri(),
+            "n": secrets.token_urlsafe(12),
+            "exp": expire,
+        },
+        settings.secret_key,
+        algorithm=settings.algorithm,
+    )
+
+
+def read_oauth_state(state: str) -> dict | None:
+    if not state:
+        return None
+    settings = get_settings()
+    try:
+        payload = jwt.decode(state, settings.secret_key, algorithms=[settings.algorithm])
+    except JWTError:
+        return None
+    if payload.get("purpose") != "google_oauth":
+        return None
+    return payload
 
 
 def consume_oauth_state(state: str) -> bool:
-    if not state:
-        return False
-    r = _client()
-    if r:
-        key = f"oauth:google:{state}"
-        ok = r.delete(key)
-        return bool(ok)
-    from app.limits import _memory
-    import time
-
-    key = f"oauth:google:{state}"
-    until, _ = _memory.pop(key, (0, 0))
-    return until > time.time()
+    return read_oauth_state(state) is not None
 
 
 def google_authorize_url(state: str) -> str:
     settings = get_settings()
     params = {
         "client_id": settings.google_client_id,
-        "redirect_uri": settings.google_redirect_uri,
+        "redirect_uri": callback_uri(),
         "response_type": "code",
         "scope": "openid email profile",
         "state": state,
@@ -66,7 +76,7 @@ def google_authorize_url(state: str) -> str:
     return f"{GOOGLE_AUTH}?{urlencode(params)}"
 
 
-def exchange_google_code(code: str) -> dict:
+def exchange_google_code(code: str, redirect_uri: str | None = None) -> dict:
     settings = get_settings()
     with httpx.Client(timeout=15.0) as client:
         token_resp = client.post(
@@ -75,7 +85,7 @@ def exchange_google_code(code: str) -> dict:
                 "code": code,
                 "client_id": settings.google_client_id,
                 "client_secret": settings.google_client_secret,
-                "redirect_uri": settings.google_redirect_uri,
+                "redirect_uri": redirect_uri or callback_uri(),
                 "grant_type": "authorization_code",
             },
         )

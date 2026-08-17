@@ -98,3 +98,4 @@ class StatsOut(BaseModel):
     posts_scanned: int
     high_relevance_hits: int
     replies_drafted: int
+    x_circuit_open: bool = False

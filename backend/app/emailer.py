@@ -5,7 +5,7 @@ from app.config import get_settings
 
 def build_digest_email_body(email: str, digest: dict) -> str:
     lines = [
-        f"Undertow daily digest for {email}",
+        f"Sudo daily digest for {email}",
         "=" * 40,
         f"High-signal posts (last {digest['hours']}h): {digest['total']}",
         "",
@@ -30,10 +30,10 @@ def build_digest_email_body(email: str, digest: dict) -> str:
         lines.append("")
 
     if not flat:
-        lines.append("No high-relevance hits this period. Keep listening.")
+        lines.append("Quiet period. Nothing worth waking you for.")
 
     lines.append("")
-    lines.append("- Undertow")
+    lines.append("That's what surfaced this week. — Wick")
     return "\n".join(lines)
 
 

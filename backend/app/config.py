@@ -9,16 +9,16 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://undertow:undertow@localhost:5433/undertow"
     redis_url: str = "redis://localhost:6379/0"
     secret_key: str = "dev-secret-change-me"
-    public_base_url: str = "http://localhost:5173"
+    public_base_url: str = "https://www.trysudo.in"
     require_email_verify: bool = False
     digest_skip_empty: bool = True
-    max_keywords_per_user: int = 15
+    max_keywords_per_user: int = 200
     scan_cooldown_minutes: int = 5
     auth_login_max_attempts: int = 8
     auth_login_window_seconds: int = 300
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://127.0.0.1:8000/auth/google/callback"
+    google_redirect_uri: str = "https://undertow-api.vercel.app/auth/google/callback"
     anthropic_api_key: str = ""
     nvidia_api_key: str = ""
     nvidia_model: str = "meta/llama-3.1-70b-instruct"
@@ -39,16 +39,28 @@ class Settings(BaseSettings):
     sendgrid_from_email: str = "digest@undertow.app"
     ingest_interval_minutes: int = 20
     digest_hour_utc: int = 8
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "https://www.trysudo.in,https://trysudo.in,"
+        "https://undertow-zeta.vercel.app"
+    )
     product_description: str = (
-        "A founder research tool that listens for customer pain across Hacker News, GitHub, and X."
+        "Sudo listens for customer pain across Hacker News, GitHub, and X."
     )
     access_token_expire_minutes: int = 60 * 24 * 7
     algorithm: str = "HS256"
+    admin_password: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        raw = (self.cors_origins or "").strip()
+        if not raw:
+            raw = (
+                "http://localhost:5173,http://127.0.0.1:5173,"
+                "https://www.trysudo.in,https://trysudo.in,"
+                "https://undertow-zeta.vercel.app"
+            )
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
     @property
     def sqlalchemy_url(self) -> str:

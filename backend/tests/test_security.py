@@ -28,6 +28,18 @@ def test_health_and_security_headers() -> None:
     assert "content-security-policy" in res.headers
 
 
+def test_cors_allows_trysudo() -> None:
+    res = client.options(
+        "/health",
+        headers={
+            "Origin": "https://www.trysudo.in",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert res.status_code in {200, 204}
+    assert res.headers.get("access-control-allow-origin") == "https://www.trysudo.in"
+
+
 def test_feed_requires_auth() -> None:
     assert client.get("/feed").status_code == 401
     assert client.post("/ingest/run").status_code == 401

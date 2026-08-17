@@ -88,8 +88,68 @@ def _finish_scan_job(scan_id: int | None, stats: dict, ok: bool) -> None:
         db.close()
 
 
+def _reddit_configured() -> bool:
+    from app.config import get_settings
+
+    s = get_settings()
+    return bool(s.reddit_client_id and s.reddit_client_secret)
+
+
+def _job_list(by_kw: dict[str, set[str]]) -> list[list[str]]:
+    sources = ("hn", "github", "x", "reddit")
+    pending: list[list[str]] = []
+    reddit_ok = _reddit_configured()
+    for keyword, plats in by_kw.items():
+        for source in sources:
+            if plats and source not in plats:
+                continue
+            if source == "reddit" and not reddit_ok:
+                continue
+            pending.append([source, keyword])
+    return pending
+
+
+def advance_scan(scan_id: int, max_jobs: int = 1) -> None:
+    """Run a few pending ingest jobs. Safe for short serverless request timeouts."""
+    db = SessionLocal()
+    try:
+        scan = db.get(Scan, scan_id)
+        if not scan or scan.status not in ("queued", "running"):
+            return
+        blob = dict(scan.results or {})
+        pending = list(blob.get("pending") or [])
+        if not pending:
+            if int(scan.finished_jobs or 0) >= int(scan.total_jobs or 0):
+                scan.status = "done" if not scan.error else "partial"
+                db.commit()
+            return
+        for _ in range(max_jobs):
+            if not pending:
+                break
+            source, keyword = pending.pop(0)
+            blob["pending"] = pending
+            scan.results = blob
+            flag_modified(scan, "results")
+            db.commit()
+            try:
+                ingest_source_keyword_job(source, keyword, scan_id)
+            except Exception as exc:  # noqa: BLE001
+                print(f"[scan] job failed {source} {keyword}: {exc}")
+            scan = db.get(Scan, scan_id)
+            if not scan:
+                return
+            blob = dict(scan.results or {})
+            pending = list(blob.get("pending") or [])
+        scan = db.get(Scan, scan_id)
+        if scan and not list((scan.results or {}).get("pending") or []):
+            if int(scan.finished_jobs or 0) >= int(scan.total_jobs or 0):
+                scan.status = "done" if not scan.error else "partial"
+                db.commit()
+    finally:
+        db.close()
+
+
 def enqueue_scan(db, *, user_id: int | None, keywords: list[str] | None = None) -> Scan:
-    from app.queues import queue, retry
 
     if keywords is None:
         rows = list(db.scalars(select(Watchlist).where(Watchlist.active.is_(True))).all())
@@ -102,18 +162,25 @@ def enqueue_scan(db, *, user_id: int | None, keywords: list[str] | None = None) 
     else:
         by_kw = {k.strip().lower(): {"hn", "github", "x", "reddit"} for k in keywords}
 
-    scan = Scan(user_id=user_id, status="queued", total_jobs=0, finished_jobs=0, results={})
+    pending = _job_list(by_kw)
+    scan = Scan(
+        user_id=user_id,
+        status="queued",
+        total_jobs=len(pending),
+        finished_jobs=0,
+        results={"pending": pending},
+    )
     db.add(scan)
     db.commit()
     db.refresh(scan)
 
-    n = 0
-    sources = ("hn", "github", "x", "reddit")
-    for keyword, plats in by_kw.items():
-        for source in sources:
-            if plats and source not in plats:
-                continue
-            try:
+    from app.queues import redis_live
+
+    if redis_live() and pending:
+        try:
+            from app.queues import queue, retry
+
+            for source, keyword in pending:
                 queue(source).enqueue(
                     ingest_source_keyword_job,
                     source,
@@ -122,12 +189,12 @@ def enqueue_scan(db, *, user_id: int | None, keywords: list[str] | None = None) 
                     retry=retry(),
                     job_timeout=240,
                 )
-            except Exception as exc:  # noqa: BLE001
-                print(f"[scan] enqueue failed {source} {keyword}: {exc}")
-                continue
-            n += 1
-    scan.total_jobs = n
-    scan.status = "running" if n else "done"
+            scan.results = {}
+            flag_modified(scan, "results")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[scan] RQ enqueue failed; polling will crawl: {exc}")
+
+    scan.status = "running" if pending else "done"
     db.commit()
     db.refresh(scan)
     return scan

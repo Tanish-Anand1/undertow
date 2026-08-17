@@ -18,16 +18,37 @@
 }
 
 html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+html,
 body,
 #root {
   min-height: 100%;
   background: #ffffff;
 }
 
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+html.lenis,
+html.lenis body {
+  overflow-x: hidden;
+}
+
 html.hm-root,
 html.hm-root body,
 html.hm-root #root {
   background: #ffffff;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {

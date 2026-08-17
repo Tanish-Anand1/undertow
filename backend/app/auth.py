@@ -54,6 +54,8 @@ def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("role") == "admin":
+            raise credentials_exception
         email: str | None = payload.get("sub")
         if email is None:
             raise credentials_exception
