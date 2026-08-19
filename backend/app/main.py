@@ -13,7 +13,7 @@ from app.routers import admin, auth, digest, feed, posts, presence, watchlists
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    Base.metadata.create_all(bind=engine, tables=[SiteVisitor.__table__])
+    # Base.metadata.create_all(bind=engine, tables=[SiteVisitor.__table__])
     yield
 
 
