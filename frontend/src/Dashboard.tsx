@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import { HIGH_SIGNAL, statusLine, wickHeard, wickTwice, wickWelcomeBack } from './copy'
 import { WickMark, type WickMood } from './Wick'
 import './Wick.css'
-import { api, API_BASE, type Digest, type Post, type Stats, type Watchlist } from './api'
+import { api, type Digest, type Post, type Stats, type Watchlist } from './api'
 import './Dashboard.css'
 
 const PLATFORMS = [
@@ -44,37 +45,38 @@ function timeAgo(iso: string | null) {
   return `${Math.floor(h / 24)}d`
 }
 
-function AuthScreen({ onAuthed }: { onAuthed: () => void }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+function OnboardingScreen({ onClose }: { onClose: () => void }) {
+  const [step, setStep] = useState<'name' | 'login' | 'register'>('name')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1)
-    const params = new URLSearchParams(hash)
-    const token = params.get('google')
-    if (params.get('google_error')) {
-      setError('Google sign-in was cancelled or failed.')
-      window.history.replaceState(null, '', window.location.pathname)
-      return
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
     }
-    if (token) {
-      api.setToken(token)
-      window.history.replaceState(null, '', window.location.pathname)
-      onAuthed()
-    }
-  }, [onAuthed])
+  }, [])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (step === 'name') {
+      if (!name.trim()) { setError('Please enter a name'); return; }
+      setStep('register')
+      setError('')
+      return
+    }
     setBusy(true)
     setError('')
     try {
-      if (mode === 'register') await api.register(email, password)
-      await api.login(email, password)
-      onAuthed()
+      if (step === 'register') {
+        await api.upgrade(name, email, password)
+      } else {
+        await api.login(email, password)
+      }
+      onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auth failed')
     } finally {
@@ -83,55 +85,79 @@ function AuthScreen({ onAuthed }: { onAuthed: () => void }) {
   }
 
   return (
-    <div className="hm chamber">
-      <header className="hm-nav">
-        <a className="hm-mark" href="/">
-          Sudo
-        </a>
-        <nav className="hm-links" aria-label="Primary">
-          <a href="/">Home</a>
-        </nav>
-      </header>
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.25 }}
+      className="hm chamber hm-onboarding-overlay" 
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)' }}
+    >
       <div className="auth-wrap">
         <form onSubmit={submit} className="auth-form">
           <WickMark mood="idle" className="wick-auth" />
-          <h1>{mode === 'login' ? 'Enter.' : 'Begin.'}</h1>
+          <h1>{step === 'name' ? 'What should Wick call you?' : (step === 'login' ? 'Enter.' : 'Begin.')}</h1>
           <p>The feed is private. Wick is already listening.</p>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            required
-          />
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            minLength={8}
-            required
-          />
+          
+          <AnimatePresence mode="wait">
+            {step === 'name' ? (
+              <motion.div key="name" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+                <label htmlFor="name">Name</label>
+                <input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  type="text"
+                  required
+                  autoFocus
+                />
+              </motion.div>
+            ) : (
+              <motion.div key="creds" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  required
+                  autoFocus
+                />
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  minLength={8}
+                  required
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {error && <p className="auth-err">{error}</p>}
           <button className="hm-cta" disabled={busy} type="submit">
-            {busy ? 'Please wait' : mode === 'login' ? 'Enter chamber' : 'Create account'}
+            {step === 'name' ? 'Continue' : busy ? 'Please wait' : step === 'login' ? 'Enter chamber' : 'Create account'}
           </button>
-          <a className="google-auth" href={`${API_BASE}/auth/google/start`}>
-            Continue with Google
-          </a>
-          <button type="button" className="switch" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-            {mode === 'login' ? 'Need an account? Register' : 'Have an account? Enter'}
+          
+          {step !== 'name' && (
+            <button type="button" className="switch" onClick={() => setStep(step === 'login' ? 'register' : 'login')}>
+              {step === 'login' ? 'Need an account? Register' : 'Have an account? Enter'}
+            </button>
+          )}
+          <button type="button" className="switch" onClick={onClose} style={{ marginTop: '1rem', opacity: 0.7 }}>
+            Cancel
           </button>
         </form>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 export default function Dashboard() {
   const [authed, setAuthed] = useState(!!api.token())
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [watchlists, setWatchlists] = useState<Watchlist[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [digest, setDigest] = useState<Digest | null>(null)
@@ -233,7 +259,11 @@ export default function Dashboard() {
       await api.ingest()
       await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Scan failed')
+      if (err instanceof Error && err.message.toLowerCase().includes('limit reached')) {
+        setShowOnboarding(true)
+      } else {
+        setError(err instanceof Error ? err.message : 'Scan failed')
+      }
     } finally {
       setScanning(false)
     }
@@ -288,10 +318,19 @@ export default function Dashboard() {
     }
   }
 
-  if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />
+  useEffect(() => {
+    if (!authed) {
+      api.guestStart().then(() => setAuthed(true)).catch(console.error)
+    }
+  }, [authed])
+
+  if (!authed) return null
 
   return (
     <div className="hm chamber">
+      <AnimatePresence>
+        {showOnboarding && <OnboardingScreen onClose={() => setShowOnboarding(false)} />}
+      </AnimatePresence>
       <header className="chamber-nav">
         <a className="hm-mark" href="/">
           Sudo
@@ -416,7 +455,11 @@ export default function Dashboard() {
           {posts.map((p, i) => {
             const twice = (p.relevance_score ?? 0) >= HIGH_SIGNAL
             return (
-            <article
+            <motion.article
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              viewport={{ once: true, margin: '-20px' }}
               className={`chamber-post${twice ? ' chamber-post--twice' : ''}`}
               key={`${p.id}-${p.watchlist_id ?? ''}-${p.source}-${i}`}
             >
@@ -452,7 +495,7 @@ export default function Dashboard() {
                   {draft.text}
                 </div>
               )}
-            </article>
+            </motion.article>
             )
           })}
           {!posts.length && (

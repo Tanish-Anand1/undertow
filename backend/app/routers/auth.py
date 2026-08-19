@@ -21,7 +21,8 @@ from app.oauth_google import (
     read_oauth_state,
     upsert_google_user,
 )
-from app.schemas import ForgotPasswordIn, ResetPasswordIn, TokenOut, UserCreate, UserOut, VerifyEmailIn
+from app.schemas import ForgotPasswordIn, ResetPasswordIn, TokenOut, UserCreate, UserOut, VerifyEmailIn, GuestUpgradeIn
+import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -56,6 +57,58 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
             "Verify your Sudo email",
             f"Confirm this address to finish signup:\n{link}\n",
         )
+    return user
+
+
+@router.post("/guest/start", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
+def guest_start(db: Session = Depends(get_db)) -> TokenOut:
+    guest_email = f"guest-{uuid.uuid4()}@trysudo.in"
+    user = User(
+        email=guest_email,
+        hashed_password=None,
+        is_guest=True,
+        email_verified=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return TokenOut(access_token=create_access_token(user.email))
+
+
+@router.post("/upgrade", response_model=UserOut)
+def upgrade_guest(
+    payload: GuestUpgradeIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    if not user.is_guest:
+        raise HTTPException(status_code=400, detail="User is not a guest")
+    
+    existing = db.query(User).filter(User.email == payload.email.lower()).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user.email = payload.email.lower()
+    user.name = payload.name
+    user.hashed_password = hash_password(payload.password)
+    user.is_guest = False
+    
+    settings = get_settings()
+    if settings.require_email_verify:
+        user.email_verified = False
+        token = secrets.token_urlsafe(32)
+        user.email_verify_token = token
+        link = f"{settings.public_base_url}/app?verify={token}"
+        send_email(
+            user.email,
+            "Verify your Sudo email",
+            f"Confirm this address to finish signup:\n{link}\n",
+        )
+    else:
+        user.email_verified = True
+
+    db.commit()
+    db.refresh(user)
     return user
 
 

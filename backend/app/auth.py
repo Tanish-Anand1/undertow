@@ -38,8 +38,10 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
     user = get_user_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
+    if user.is_guest:
+        return None  # Guests cannot log in normally
     return user
 
 

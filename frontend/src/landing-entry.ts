@@ -30,10 +30,10 @@ if (!reduce && finePointer) {
 }
 
 function apiBase() {
-  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
-  if (fromEnv) return fromEnv
   const host = window.location.hostname
   if (host === 'localhost' || host === '127.0.0.1') return ''
+  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
+  if (fromEnv) return fromEnv
   return 'https://undertow-api.vercel.app'
 }
 

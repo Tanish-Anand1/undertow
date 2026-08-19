@@ -10,7 +10,9 @@ class UserCreate(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    email: EmailStr
+    email: EmailStr | None = None
+    name: str | None = None
+    is_guest: bool
     email_verified: bool = True
     created_at: datetime
 
@@ -20,6 +22,12 @@ class UserOut(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class GuestUpgradeIn(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    password: str = Field(min_length=8)
 
 
 class ForgotPasswordIn(BaseModel):

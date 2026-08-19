@@ -156,7 +156,7 @@
 .chamber-feed h2,
 .chamber-rail h2 {
   margin: 0 0 1.1rem;
-  font-family: "Bodoni Moda", serif;
+  font-family: "Black Ops One", serif;
   font-weight: 400;
   font-size: 1.85rem;
   letter-spacing: -0.03em;
@@ -372,7 +372,7 @@
 }
 
 .chamber-post a {
-  font-family: "Bodoni Moda", serif;
+  font-family: "Black Ops One", serif;
   font-size: 1.28rem;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -473,7 +473,7 @@
 
 .auth-form h1 {
   margin: 0 0 0.6rem;
-  font-family: "Bodoni Moda", serif;
+  font-family: "Black Ops One", serif;
   font-weight: 400;
   font-size: clamp(2.6rem, 6vw, 3.6rem);
   letter-spacing: -0.03em;

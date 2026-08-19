@@ -24,8 +24,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(320), unique=True, index=True, nullable=True)
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_guest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     email_verify_token: Mapped[str | None] = mapped_column(String(128), nullable=True)
     reset_token: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)

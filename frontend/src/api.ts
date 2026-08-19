@@ -3,10 +3,11 @@ const TOKEN_KEY = 'undertow_token'
 const PRODUCTION_API = 'https://undertow-api.vercel.app'
 
 function resolveApiBase() {
-  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
-  if (fromEnv) return fromEnv
   if (typeof window !== 'undefined') {
     const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return ''
+    }
     if (
       host === 'trysudo.in' ||
       host === 'www.trysudo.in' ||
@@ -16,6 +17,8 @@ function resolveApiBase() {
       return PRODUCTION_API
     }
   }
+  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
+  if (fromEnv) return fromEnv
   return ''
 }
 
@@ -122,6 +125,17 @@ export const api = {
   },
   register: (email: string, password: string) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  guestStart: async () => {
+    const data = await request<{ access_token: string }>('/auth/guest/start', { method: 'POST' })
+    api.setToken(data.access_token)
+    return data
+  },
+  upgrade: async (name: string, email: string, password: string) => {
+    return request<{ id: number; email: string; is_guest: boolean }>('/auth/upgrade', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password })
+    })
+  },
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password })
     let res: Response
