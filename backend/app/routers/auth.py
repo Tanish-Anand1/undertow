@@ -22,6 +22,7 @@ from app.oauth_google import (
     upsert_google_user,
 )
 from app.schemas import (
+    AuthSessionOut,
     ClaimAccountIn,
     ForgotPasswordIn,
     GuestStartIn,
@@ -34,6 +35,11 @@ from app.schemas import (
 from app.security import sanitize_device_id, sanitize_keyword
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Guest accounts never log in with a password (they're reached only via JWT, and
+# claim() overwrites this entirely), so the hash content is irrelevant — precompute
+# it once instead of paying a fresh bcrypt hash on every guest signup.
+_GUEST_PASSWORD_HASH = hash_password(secrets.token_urlsafe(32))
 
 
 def _client_key(request: Request, email: str) -> str:
@@ -138,8 +144,8 @@ def me(user: User = Depends(get_current_user)) -> User:
     return user
 
 
-@router.post("/guest", response_model=TokenOut)
-def start_guest(payload: GuestStartIn, request: Request, db: Session = Depends(get_db)) -> TokenOut:
+@router.post("/guest", response_model=AuthSessionOut)
+def start_guest(payload: GuestStartIn, request: Request, db: Session = Depends(get_db)) -> AuthSessionOut:
     ip = request.client.host if request.client else "unknown"
     if not allow_auth_attempt(f"guest:{ip}"):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
@@ -151,7 +157,7 @@ def start_guest(payload: GuestStartIn, request: Request, db: Session = Depends(g
     if not user:
         user = User(
             email=f"guest-{secrets.token_hex(12)}@guest.trysudo.in",
-            hashed_password=hash_password(secrets.token_urlsafe(32)),
+            hashed_password=_GUEST_PASSWORD_HASH,
             email_verified=True,
             is_guest=True,
             guest_device_id=device_id,
@@ -159,16 +165,16 @@ def start_guest(payload: GuestStartIn, request: Request, db: Session = Depends(g
         db.add(user)
         db.commit()
         db.refresh(user)
-    return TokenOut(access_token=create_access_token(user.email))
+    return AuthSessionOut(access_token=create_access_token(user.email), user=user)
 
 
-@router.post("/claim", response_model=TokenOut)
+@router.post("/claim", response_model=AuthSessionOut)
 def claim_account(
     payload: ClaimAccountIn,
     request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TokenOut:
+) -> AuthSessionOut:
     if not user.is_guest:
         raise HTTPException(status_code=400, detail="This account is already active.")
     if not allow_auth_attempt(f"claim:{_client_key(request, payload.email)}"):
@@ -198,7 +204,7 @@ def claim_account(
     db.refresh(user)
     if settings.require_email_verify and not user.email_verified:
         raise HTTPException(status_code=403, detail="Verify your email before signing in.")
-    return TokenOut(access_token=create_access_token(user.email))
+    return AuthSessionOut(access_token=create_access_token(user.email), user=user)
 
 
 @router.get("/google/start")

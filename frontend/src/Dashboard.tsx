@@ -83,7 +83,7 @@ function NameOnboarding({ onNext }: { onNext: (name: string) => void }) {
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -12 }}
-        transition={{ duration: 0.5, ease: EASE_OUT }}
+        transition={{ duration: 0.32, ease: EASE_OUT }}
         onSubmit={(e) => {
           e.preventDefault()
           const trimmed = name.trim()
@@ -134,14 +134,14 @@ function AuthScreen({
     setError('')
     try {
       if (claiming) {
-        await api.claim(name.trim(), email, password)
-      } else if (mode === 'register') {
-        await api.register(email, password, name.trim() || undefined)
-        await api.login(email, password)
+        onAuthed(await api.claim(name.trim(), email, password))
       } else {
+        if (mode === 'register') {
+          await api.register(email, password, name.trim() || undefined)
+        }
         await api.login(email, password)
+        onAuthed(await api.me())
       }
-      onAuthed(await api.me())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auth failed')
     } finally {
@@ -157,7 +157,7 @@ function AuthScreen({
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -12 }}
-        transition={{ duration: 0.5, ease: EASE_OUT }}
+        transition={{ duration: 0.32, ease: EASE_OUT }}
       >
         <WickMark mood="idle" className="wick-auth" />
         <h1>{claiming ? 'Lock it in.' : mode === 'login' ? 'Enter.' : 'Begin.'}</h1>
@@ -266,8 +266,7 @@ export default function Dashboard() {
         }
       }
       try {
-        await api.startGuest()
-        setMe(await api.me())
+        setMe(await api.startGuest())
       } catch (err) {
         setBootError(err instanceof Error ? err.message : 'Could not start a session')
       }
@@ -427,8 +426,7 @@ export default function Dashboard() {
     setPosts([])
     setDidPrime(false)
     try {
-      await api.startGuest()
-      setMe(await api.me())
+      setMe(await api.startGuest())
     } catch (err) {
       setBootError(err instanceof Error ? err.message : 'Could not start a session')
     }
@@ -441,14 +439,15 @@ export default function Dashboard() {
           {bootError ? (
             <AuthScreen onAuthed={setMe} />
           ) : (
-            <motion.p
-              className="chamber-meta"
+            <motion.div
+              className="wick-dock"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.18, ease: EASE_OUT }}
             >
-              {statusLine('scan')}
-            </motion.p>
+              <WickMark mood="typing" />
+              <p className="wick-line">{statusLine('scan')}</p>
+            </motion.div>
           )}
         </div>
       </div>
@@ -476,7 +475,7 @@ export default function Dashboard() {
   const guestScansLeft = me.is_guest ? Math.max(0, GUEST_SCAN_LIMIT - me.guest_scans_used) : null
 
   return (
-    <motion.div className="hm chamber" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <motion.div className="hm chamber" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22, ease: EASE_OUT }}>
       <header className="chamber-nav">
         <a className="hm-mark" href="/">
           Sudo
@@ -606,7 +605,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '0px 0px -10% 0px' }}
-              transition={{ duration: 0.45, ease: EASE_OUT }}
+              transition={{ duration: 0.3, ease: EASE_OUT }}
             >
               <header>
                 <span>{p.source}</span>

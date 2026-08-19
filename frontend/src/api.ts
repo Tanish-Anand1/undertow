@@ -148,20 +148,20 @@ export const api = {
   register: (email: string, password: string, name?: string) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name: name || undefined }) }),
   startGuest: async () => {
-    const data = await request<{ access_token: string }>('/auth/guest', {
+    const data = await request<{ access_token: string; user: Me }>('/auth/guest', {
       method: 'POST',
       body: JSON.stringify({ device_id: deviceId() }),
     })
     api.setToken(data.access_token)
-    return data
+    return data.user
   },
   claim: async (name: string, email: string, password: string) => {
-    const data = await request<{ access_token: string }>('/auth/claim', {
+    const data = await request<{ access_token: string; user: Me }>('/auth/claim', {
       method: 'POST',
       body: JSON.stringify({ name, email, password }),
     })
     api.setToken(data.access_token)
-    return data
+    return data.user
   },
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password })

@@ -26,6 +26,12 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
+class AuthSessionOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
 class GuestStartIn(BaseModel):
     device_id: str = Field(min_length=8, max_length=64)
 
