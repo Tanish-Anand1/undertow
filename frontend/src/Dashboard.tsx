@@ -46,7 +46,9 @@ function timeAgo(iso: string | null) {
 }
 
 function OnboardingScreen({ onClose }: { onClose: () => void }) {
-  const [step, setStep] = useState<'name' | 'login' | 'register'>('name')
+  const [step, setStep] = useState<'q1' | 'q2' | 'name' | 'login' | 'register'>('q1')
+  const [iceCream, setIceCream] = useState('')
+  const [fight, setFight] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -62,6 +64,18 @@ function OnboardingScreen({ onClose }: { onClose: () => void }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (step === 'q1') {
+      if (!iceCream) { setError('Please pick a flavor'); return; }
+      setStep('q2')
+      setError('')
+      return
+    }
+    if (step === 'q2') {
+      if (!fight) { setError('Please pick an opponent'); return; }
+      setStep('name')
+      setError('')
+      return
+    }
     if (step === 'name') {
       if (!name.trim()) { setError('Please enter a name'); return; }
       setStep('register')
@@ -96,11 +110,34 @@ function OnboardingScreen({ onClose }: { onClose: () => void }) {
       <div className="auth-wrap">
         <form onSubmit={submit} className="auth-form">
           <WickMark mood="idle" className="wick-auth" />
-          <h1>{step === 'name' ? 'What should Wick call you?' : (step === 'login' ? 'Enter.' : 'Begin.')}</h1>
+          <h1>{step === 'q1' ? 'What\'s your favorite ice cream flavor?' : step === 'q2' ? 'If you had to fight...' : step === 'name' ? 'What should Wick call you?' : (step === 'login' ? 'Enter.' : 'Begin.')}</h1>
           <p>The feed is private. Wick is already listening.</p>
           
           <AnimatePresence mode="wait">
-            {step === 'name' ? (
+            {step === 'q1' ? (
+              <motion.div key="q1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="auth-options">
+                <label>Choose wisely</label>
+                <div className="auth-choices">
+                  {['Chocolate', 'Vanilla', 'Strawberry', 'Mint', 'Something Weird'].map(opt => (
+                    <button key={opt} type="button" className={`auth-choice ${iceCream === opt ? 'selected' : ''}`} onClick={() => setIceCream(opt)}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            ) : step === 'q2' ? (
+              <motion.div key="q2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="auth-options">
+                <label>Choose your opponent</label>
+                <div className="auth-choices">
+                  <button type="button" className={`auth-choice ${fight === 'duck' ? 'selected' : ''}`} onClick={() => setFight('duck')}>
+                    A horse-sized duck
+                  </button>
+                  <button type="button" className={`auth-choice ${fight === 'horses' ? 'selected' : ''}`} onClick={() => setFight('horses')}>
+                    100 duck-sized horses
+                  </button>
+                </div>
+              </motion.div>
+            ) : step === 'name' ? (
               <motion.div key="name" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
                 <label htmlFor="name">Name</label>
                 <input
@@ -138,10 +175,10 @@ function OnboardingScreen({ onClose }: { onClose: () => void }) {
 
           {error && <p className="auth-err">{error}</p>}
           <button className="hm-cta" disabled={busy} type="submit">
-            {step === 'name' ? 'Continue' : busy ? 'Please wait' : step === 'login' ? 'Enter chamber' : 'Create account'}
+            {step === 'q1' || step === 'q2' || step === 'name' ? 'Continue' : busy ? 'Please wait' : step === 'login' ? 'Enter chamber' : 'Create account'}
           </button>
           
-          {step !== 'name' && (
+          {(step === 'login' || step === 'register') && (
             <button type="button" className="switch" onClick={() => setStep(step === 'login' ? 'register' : 'login')}>
               {step === 'login' ? 'Need an account? Register' : 'Have an account? Enter'}
             </button>

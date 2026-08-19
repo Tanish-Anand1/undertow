@@ -542,15 +542,23 @@
 }
 
 @media (min-width: 980px) {
+  body {
+    overflow: hidden;
+  }
+
   .chamber-grid {
     display: grid;
     grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(200px, 260px);
+    height: calc(100dvh - 4.8rem);
+    overflow: hidden;
   }
 
   .chamber-side,
   .chamber-feed,
   .chamber-rail {
     order: unset;
+    height: 100%;
+    overflow-y: auto;
   }
 
   .chamber-side {
@@ -660,3 +668,35 @@
     transform: none;
   }
 }
+
+.auth-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.auth-choice {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 0.85rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--mute);
+  cursor: pointer;
+  text-align: left;
+  transition: all 160ms var(--ease-out);
+}
+
+.auth-choice.selected {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .auth-choice:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+}
+
