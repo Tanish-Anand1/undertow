@@ -17,7 +17,7 @@
 
 .admin-main h1 {
   margin: 0 0 1.75rem;
-  font-family: "Bodoni Moda", serif;
+  font-family: "Black Ops One", "Arial Narrow", sans-serif;
   font-weight: 400;
   font-size: clamp(2.4rem, 6vw, 3.4rem);
   letter-spacing: -0.03em;
@@ -48,7 +48,7 @@
 
 .admin-stats dd {
   margin: 0;
-  font-family: "Bodoni Moda", serif;
+  font-family: "Black Ops One", "Arial Narrow", sans-serif;
   font-size: 1.85rem;
   letter-spacing: -0.03em;
 }
@@ -109,7 +109,7 @@
 
 .admin-keys em {
   font-style: normal;
-  font-family: "Bodoni Moda", serif;
+  font-family: "Black Ops One", "Arial Narrow", sans-serif;
 }
 
 .nf-kicker {
