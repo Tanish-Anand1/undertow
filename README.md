@@ -98,7 +98,7 @@ Local fixture `founder@example.com` / `password123` still works if that user exi
 ## Guardrails
 
 - Max active keywords per user: `MAX_KEYWORDS_PER_USER` (default 15)
-- Manual Scan cooldown: `SCAN_COOLDOWN_MINUTES` (default 5). Scheduled crawls are separate.
+- Manual Scans: unlimited, no cooldown. Scheduled crawls are separate.
 - Empty digest: skipped (`DIGEST_SKIP_EMPTY=true`)
 
 `POST /ingest/run` enqueues jobs and returns `{id, status, total_jobs, finished_jobs}`. Poll `GET /ingest/{id}`. Circuit state is on `GET /health`.

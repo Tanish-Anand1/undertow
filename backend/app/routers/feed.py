@@ -1,10 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
-from app.config import get_settings
 from app.database import get_db
 from app.jobs import advance_scan, enqueue_scan
 from app.limits import circuit_open
@@ -77,19 +76,6 @@ def trigger_ingest(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ScanOut:
-    settings = get_settings()
-    if user.last_scan_at:
-        last = user.last_scan_at
-        if last.tzinfo is None:
-            last = last.replace(tzinfo=timezone.utc)
-        wait = timedelta(minutes=settings.scan_cooldown_minutes)
-        remaining = (last + wait) - datetime.now(timezone.utc)
-        if remaining.total_seconds() > 0:
-            mins = max(1, int(remaining.total_seconds() // 60) + 1)
-            raise HTTPException(
-                status_code=429,
-                detail=f"Scan available again in about {mins} minute(s).",
-            )
     scan = enqueue_scan(db, user_id=user.id)
     user.last_scan_at = datetime.now(timezone.utc)
     db.commit()
