@@ -7,7 +7,12 @@ from app.config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(settings.sqlalchemy_url, pool_pre_ping=True)
+engine = create_engine(
+    settings.sqlalchemy_url,
+    pool_pre_ping=True,
+    pool_size=20,
+    max_overflow=20,
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

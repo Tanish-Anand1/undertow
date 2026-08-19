@@ -142,7 +142,7 @@ def get_user_feed(
         .join(Watchlist, Watchlist.id == WatchlistMatch.watchlist_id)
         .where(Watchlist.owner_id == user_id)
         .where(Watchlist.active.is_(True))
-        .order_by(Post.relevance_score.desc().nulls_last(), Post.ingested_at.desc())
+        .order_by(WatchlistMatch.match_score.desc().nulls_last(), WatchlistMatch.matched_at.desc())
         .limit(limit)
     )
     if platform:
@@ -160,10 +160,10 @@ def get_digest_for_user(db: Session, user_id: int, hours: int = 24) -> dict:
         .join(Watchlist, Watchlist.id == WatchlistMatch.watchlist_id)
         .where(Watchlist.owner_id == user_id)
         .where(Watchlist.active.is_(True))
-        .where(Post.ingested_at >= cutoff)
-        .where(Post.relevance_score >= 60)
+        .where(WatchlistMatch.matched_at >= cutoff)
+        .where(WatchlistMatch.match_score >= 60)
         .where((Post.tag.is_(None)) | (Post.tag != "irrelevant"))
-        .order_by(Post.relevance_score.desc().nulls_last())
+        .order_by(WatchlistMatch.match_score.desc().nulls_last())
     ).all()
 
     # Deduplicate posts while preserving best score order
@@ -186,19 +186,17 @@ def get_digest_for_user(db: Session, user_id: int, hours: int = 24) -> dict:
 def get_user_stats(db: Session, user_id: int) -> dict[str, int]:
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     posts_scanned = db.scalar(
-        select(func.count(func.distinct(Post.id)))
-        .join(WatchlistMatch, WatchlistMatch.post_id == Post.id)
+        select(func.count(func.distinct(WatchlistMatch.post_id)))
         .join(Watchlist, Watchlist.id == WatchlistMatch.watchlist_id)
         .where(Watchlist.owner_id == user_id)
-        .where(Post.ingested_at >= week_ago)
+        .where(WatchlistMatch.matched_at >= week_ago)
     ) or 0
     high_relevance = db.scalar(
-        select(func.count(func.distinct(Post.id)))
-        .join(WatchlistMatch, WatchlistMatch.post_id == Post.id)
+        select(func.count(func.distinct(WatchlistMatch.post_id)))
         .join(Watchlist, Watchlist.id == WatchlistMatch.watchlist_id)
         .where(Watchlist.owner_id == user_id)
-        .where(Post.ingested_at >= week_ago)
-        .where(Post.relevance_score >= 60)
+        .where(WatchlistMatch.matched_at >= week_ago)
+        .where(WatchlistMatch.match_score >= 60)
     ) or 0
     return {
         "posts_scanned": int(posts_scanned),

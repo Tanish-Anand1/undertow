@@ -92,6 +92,7 @@ class WatchlistMatch(Base):
     __table_args__ = (
         UniqueConstraint("watchlist_id", "post_id", name="uq_watchlist_post"),
         Index("ix_watchlist_matches_wl_matched", "watchlist_id", "matched_at"),
+        Index("ix_watchlist_matches_sorting", "watchlist_id", "match_score", "matched_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
