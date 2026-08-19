@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
+from app.config import get_settings
 from app.database import get_db
 from app.jobs import advance_scan, enqueue_scan
 from app.limits import circuit_open
@@ -76,8 +77,15 @@ def trigger_ingest(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ScanOut:
+    if user.is_guest and user.guest_scans_used >= get_settings().guest_scan_limit:
+        raise HTTPException(
+            status_code=403,
+            detail="Free scans used up. Create an account to keep scanning.",
+        )
     scan = enqueue_scan(db, user_id=user.id)
     user.last_scan_at = datetime.now(timezone.utc)
+    if user.is_guest:
+        user.guest_scans_used += 1
     db.commit()
     db.refresh(scan)
     return _scan_out(scan)

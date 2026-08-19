@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     require_email_verify: bool = False
     digest_skip_empty: bool = True
     max_keywords_per_user: int = 200
+    guest_scan_limit: int = 2
     auth_login_max_attempts: int = 8
     auth_login_window_seconds: int = 300
     google_client_id: str = ""

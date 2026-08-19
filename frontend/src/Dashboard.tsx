@@ -1,9 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { HIGH_SIGNAL, statusLine, wickHeard, wickTwice, wickWelcomeBack } from './copy'
 import { WickMark, type WickMood } from './Wick'
 import './Wick.css'
-import { api, API_BASE, type Digest, type Post, type Stats, type Watchlist } from './api'
+import {
+  api,
+  API_BASE,
+  GUEST_SCAN_LIMIT,
+  resetDeviceId,
+  type Digest,
+  type Me,
+  type Post,
+  type Stats,
+  type Watchlist,
+} from './api'
 import './Dashboard.css'
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
 const PLATFORMS = [
   { id: '', label: 'All', soon: false },
@@ -44,44 +57,7 @@ function timeAgo(iso: string | null) {
   return `${Math.floor(h / 24)}d`
 }
 
-function AuthScreen({ onAuthed }: { onAuthed: () => void }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    const hash = window.location.hash.slice(1)
-    const params = new URLSearchParams(hash)
-    const token = params.get('google')
-    if (params.get('google_error')) {
-      setError('Google sign-in was cancelled or failed.')
-      window.history.replaceState(null, '', window.location.pathname)
-      return
-    }
-    if (token) {
-      api.setToken(token)
-      window.history.replaceState(null, '', window.location.pathname)
-      onAuthed()
-    }
-  }, [onAuthed])
-
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    try {
-      if (mode === 'register') await api.register(email, password)
-      await api.login(email, password)
-      onAuthed()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Auth failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
+function AuthChrome({ children }: { children: ReactNode }) {
   return (
     <div className="hm chamber">
       <header className="hm-nav">
@@ -92,46 +68,157 @@ function AuthScreen({ onAuthed }: { onAuthed: () => void }) {
           <a href="/">Home</a>
         </nav>
       </header>
-      <div className="auth-wrap">
-        <form onSubmit={submit} className="auth-form">
-          <WickMark mood="idle" className="wick-auth" />
-          <h1>{mode === 'login' ? 'Enter.' : 'Begin.'}</h1>
-          <p>The feed is private. Wick is already listening.</p>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            required
-          />
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            minLength={8}
-            required
-          />
-          {error && <p className="auth-err">{error}</p>}
-          <button className="hm-cta" disabled={busy} type="submit">
-            {busy ? 'Please wait' : mode === 'login' ? 'Enter chamber' : 'Create account'}
-          </button>
-          <a className="google-auth" href={`${API_BASE}/auth/google/start`}>
-            Continue with Google
-          </a>
-          <button type="button" className="switch" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-            {mode === 'login' ? 'Need an account? Register' : 'Have an account? Enter'}
-          </button>
-        </form>
-      </div>
+      <div className="auth-wrap">{children}</div>
     </div>
   )
 }
 
+function NameOnboarding({ onNext }: { onNext: (name: string) => void }) {
+  const [name, setName] = useState('')
+
+  return (
+    <AuthChrome>
+      <motion.form
+        className="auth-form"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -12 }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
+        onSubmit={(e) => {
+          e.preventDefault()
+          const trimmed = name.trim()
+          if (trimmed) onNext(trimmed)
+        }}
+      >
+        <WickMark mood="found" className="wick-auth" />
+        <h1>Nice work.</h1>
+        <p>That was your two free scans. Before you keep going, who is Wick listening for?</p>
+        <label htmlFor="onboard-name">Your name</label>
+        <input
+          id="onboard-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="What should Wick call you?"
+          maxLength={120}
+          autoFocus
+          required
+        />
+        <button className="hm-cta" type="submit" disabled={!name.trim()}>
+          Continue
+        </button>
+      </motion.form>
+    </AuthChrome>
+  )
+}
+
+function AuthScreen({
+  guest = false,
+  guestName = '',
+  onAuthed,
+}: {
+  guest?: boolean
+  guestName?: string
+  onAuthed: (me: Me) => void
+}) {
+  const [mode, setMode] = useState<'login' | 'register'>(guest ? 'register' : 'login')
+  const [name, setName] = useState(guestName)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const claiming = guest && mode === 'register'
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      if (claiming) {
+        await api.claim(name.trim(), email, password)
+      } else if (mode === 'register') {
+        await api.register(email, password, name.trim() || undefined)
+        await api.login(email, password)
+      } else {
+        await api.login(email, password)
+      }
+      onAuthed(await api.me())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Auth failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <AuthChrome>
+      <motion.form
+        onSubmit={submit}
+        className="auth-form"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -12 }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
+      >
+        <WickMark mood="idle" className="wick-auth" />
+        <h1>{claiming ? 'Lock it in.' : mode === 'login' ? 'Enter.' : 'Begin.'}</h1>
+        <p>
+          {claiming
+            ? `Save the feed so Wick keeps listening for ${name || 'you'} after you close this tab.`
+            : 'The feed is private. Wick is already listening.'}
+        </p>
+        {mode === 'register' && (
+          <>
+            <label htmlFor="name">Name</label>
+            <input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={120}
+              required={guest}
+            />
+          </>
+        )}
+        <label htmlFor="email">Email</label>
+        <input
+          id="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          required
+        />
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          type="password"
+          minLength={8}
+          required
+        />
+        {error && <p className="auth-err">{error}</p>}
+        <button className="hm-cta" disabled={busy} type="submit">
+          {busy ? 'Please wait' : claiming ? 'Save my feed' : mode === 'login' ? 'Enter chamber' : 'Create account'}
+        </button>
+        <a className="google-auth" href={`${API_BASE}/auth/google/start`}>
+          Continue with Google
+        </a>
+        <button type="button" className="switch" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+          {mode === 'login'
+            ? guest
+              ? 'Back to saving your feed'
+              : 'Need an account? Register'
+            : 'Already have an account? Log in'}
+        </button>
+      </motion.form>
+    </AuthChrome>
+  )
+}
+
 export default function Dashboard() {
-  const [authed, setAuthed] = useState(!!api.token())
+  const [me, setMe] = useState<Me | null>(null)
+  const [bootError, setBootError] = useState('')
+  const [onboardingStep, setOnboardingStep] = useState<'name' | 'claim'>('name')
+  const [guestName, setGuestName] = useState('')
   const [watchlists, setWatchlists] = useState<Watchlist[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [digest, setDigest] = useState<Digest | null>(null)
@@ -154,6 +241,41 @@ export default function Dashboard() {
     document.documentElement.classList.add('hm-root')
     return () => document.documentElement.classList.remove('hm-root')
   }, [])
+
+  useEffect(() => {
+    async function boot() {
+      const hash = window.location.hash.slice(1)
+      const params = new URLSearchParams(hash)
+      const googleToken = params.get('google')
+      const googleError = params.get('google_error')
+      if (googleToken || googleError) {
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+      if (googleToken) {
+        api.setToken(googleToken)
+      } else if (googleError) {
+        setError('Google sign-in was cancelled or failed.')
+      }
+
+      if (api.token()) {
+        try {
+          setMe(await api.me())
+          return
+        } catch {
+          api.setToken(null)
+        }
+      }
+      try {
+        await api.startGuest()
+        setMe(await api.me())
+      } catch (err) {
+        setBootError(err instanceof Error ? err.message : 'Could not start a session')
+      }
+    }
+    boot()
+  }, [])
+
+  const needsOnboarding = !!me && me.is_guest && me.guest_scans_used >= GUEST_SCAN_LIMIT
 
   const livePlatforms = useMemo(() => {
     const set = new Set<string>()
@@ -184,14 +306,14 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (!authed) return
+    if (!me || needsOnboarding) return
     refresh()
       .then(() => {
         if (!didPrime) setDidPrime(true)
       })
       .catch((e) => setError(String(e.message || e)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed, platform, tag])
+  }, [me?.id, needsOnboarding, platform, tag])
 
   async function addWatchlist(e: FormEvent) {
     e.preventDefault()
@@ -232,8 +354,17 @@ export default function Dashboard() {
     try {
       await api.ingest()
       await refresh()
+      if (me?.is_guest) setMe(await api.me())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Scan failed')
+      if (me?.is_guest) {
+        const fresh = await api.me().catch(() => null)
+        if (fresh) setMe(fresh)
+        if (!fresh || fresh.guest_scans_used < GUEST_SCAN_LIMIT) {
+          setError(err instanceof Error ? err.message : 'Scan failed')
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Scan failed')
+      }
     } finally {
       setScanning(false)
     }
@@ -288,10 +419,64 @@ export default function Dashboard() {
     }
   }
 
-  if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />
+  async function startOver() {
+    if (me?.is_guest) resetDeviceId()
+    api.setToken(null)
+    setMe(null)
+    setWatchlists([])
+    setPosts([])
+    setDidPrime(false)
+    try {
+      await api.startGuest()
+      setMe(await api.me())
+    } catch (err) {
+      setBootError(err instanceof Error ? err.message : 'Could not start a session')
+    }
+  }
+
+  if (!me) {
+    return (
+      <div className="hm chamber">
+        <div className="auth-wrap">
+          {bootError ? (
+            <AuthScreen onAuthed={setMe} />
+          ) : (
+            <motion.p
+              className="chamber-meta"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {statusLine('scan')}
+            </motion.p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (needsOnboarding) {
+    return (
+      <AnimatePresence mode="wait">
+        {onboardingStep === 'name' ? (
+          <NameOnboarding
+            key="name"
+            onNext={(n) => {
+              setGuestName(n)
+              setOnboardingStep('claim')
+            }}
+          />
+        ) : (
+          <AuthScreen key="claim" guest guestName={guestName} onAuthed={setMe} />
+        )}
+      </AnimatePresence>
+    )
+  }
+
+  const guestScansLeft = me.is_guest ? Math.max(0, GUEST_SCAN_LIMIT - me.guest_scans_used) : null
 
   return (
-    <div className="hm chamber">
+    <motion.div className="hm chamber" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <header className="chamber-nav">
         <a className="hm-mark" href="/">
           Sudo
@@ -305,6 +490,11 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="chamber-actions">
+          {guestScansLeft !== null && (
+            <span className="chamber-guest-note">
+              {guestScansLeft} free scan{guestScansLeft === 1 ? '' : 's'} left
+            </span>
+          )}
           <button
             className="scan"
             onClick={scanNow}
@@ -314,14 +504,8 @@ export default function Dashboard() {
             {scanning ? 'Scanning' : 'Scan now'}
           </button>
           <a href="/">Home</a>
-          <button
-            type="button"
-            onClick={() => {
-              api.setToken(null)
-              setAuthed(false)
-            }}
-          >
-            Sign out
+          <button type="button" onClick={startOver}>
+            {me.is_guest ? 'Restart' : 'Sign out'}
           </button>
         </div>
       </header>
@@ -416,9 +600,13 @@ export default function Dashboard() {
           {posts.map((p, i) => {
             const twice = (p.relevance_score ?? 0) >= HIGH_SIGNAL
             return (
-            <article
+            <motion.article
               className={`chamber-post${twice ? ' chamber-post--twice' : ''}`}
               key={`${p.id}-${p.watchlist_id ?? ''}-${p.source}-${i}`}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+              transition={{ duration: 0.45, ease: EASE_OUT }}
             >
               <header>
                 <span>{p.source}</span>
@@ -452,7 +640,7 @@ export default function Dashboard() {
                   {draft.text}
                 </div>
               )}
-            </article>
+            </motion.article>
             )
           })}
           {!posts.length && (
@@ -499,6 +687,6 @@ export default function Dashboard() {
           {stats?.x_circuit_open && <p className="chamber-wick-note">{statusLine('x')}</p>}
         </section>
       </div>
-    </div>
+    </motion.div>
   )
 }

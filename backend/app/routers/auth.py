@@ -21,7 +21,17 @@ from app.oauth_google import (
     read_oauth_state,
     upsert_google_user,
 )
-from app.schemas import ForgotPasswordIn, ResetPasswordIn, TokenOut, UserCreate, UserOut, VerifyEmailIn
+from app.schemas import (
+    ClaimAccountIn,
+    ForgotPasswordIn,
+    GuestStartIn,
+    ResetPasswordIn,
+    TokenOut,
+    UserCreate,
+    UserOut,
+    VerifyEmailIn,
+)
+from app.security import sanitize_device_id, sanitize_keyword
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,6 +53,7 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
     user = User(
         email=payload.email.lower(),
         hashed_password=hash_password(payload.password),
+        name=(sanitize_keyword(payload.name, max_len=120) or None) if payload.name else None,
         email_verified=not settings.require_email_verify,
         email_verify_token=token if settings.require_email_verify else None,
     )
@@ -125,6 +136,69 @@ def verify_email(payload: VerifyEmailIn, db: Session = Depends(get_db)) -> dict:
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)) -> User:
     return user
+
+
+@router.post("/guest", response_model=TokenOut)
+def start_guest(payload: GuestStartIn, request: Request, db: Session = Depends(get_db)) -> TokenOut:
+    ip = request.client.host if request.client else "unknown"
+    if not allow_auth_attempt(f"guest:{ip}"):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    device_id = sanitize_device_id(payload.device_id)
+    if not device_id:
+        raise HTTPException(status_code=400, detail="Invalid device id")
+
+    user = db.query(User).filter(User.guest_device_id == device_id).first()
+    if not user:
+        user = User(
+            email=f"guest-{secrets.token_hex(12)}@guest.trysudo.in",
+            hashed_password=hash_password(secrets.token_urlsafe(32)),
+            email_verified=True,
+            is_guest=True,
+            guest_device_id=device_id,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return TokenOut(access_token=create_access_token(user.email))
+
+
+@router.post("/claim", response_model=TokenOut)
+def claim_account(
+    payload: ClaimAccountIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> TokenOut:
+    if not user.is_guest:
+        raise HTTPException(status_code=400, detail="This account is already active.")
+    if not allow_auth_attempt(f"claim:{_client_key(request, payload.email)}"):
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+    email = payload.email.lower()
+    existing = db.query(User).filter(User.email == email).first()
+    if existing and existing.id != user.id:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    settings = get_settings()
+    user.email = email
+    user.hashed_password = hash_password(payload.password)
+    user.name = sanitize_keyword(payload.name, max_len=120) or None
+    user.is_guest = False
+    user.guest_device_id = None
+    user.email_verified = not settings.require_email_verify
+    if settings.require_email_verify:
+        token = secrets.token_urlsafe(32)
+        user.email_verify_token = token
+        link = f"{settings.public_base_url}/app?verify={token}"
+        send_email(
+            user.email,
+            "Verify your Sudo email",
+            f"Confirm this address to finish signup:\n{link}\n",
+        )
+    db.commit()
+    db.refresh(user)
+    if settings.require_email_verify and not user.email_verified:
+        raise HTTPException(status_code=403, detail="Verify your email before signing in.")
+    return TokenOut(access_token=create_access_token(user.email))
 
 
 @router.get("/google/start")

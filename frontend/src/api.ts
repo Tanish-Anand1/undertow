@@ -1,4 +1,18 @@
 const TOKEN_KEY = 'undertow_token'
+const DEVICE_KEY = 'sudo_device'
+
+export function deviceId(): string {
+  let id = localStorage.getItem(DEVICE_KEY)
+  if (!id || id.length < 8) {
+    id = crypto.randomUUID().replace(/-/g, '')
+    localStorage.setItem(DEVICE_KEY, id)
+  }
+  return id
+}
+
+export function resetDeviceId() {
+  localStorage.removeItem(DEVICE_KEY)
+}
 
 const PRODUCTION_API = 'https://undertow-api.vercel.app'
 
@@ -63,6 +77,17 @@ export type Stats = {
   x_circuit_open?: boolean
 }
 
+export type Me = {
+  id: number
+  email: string
+  name: string | null
+  email_verified: boolean
+  is_guest: boolean
+  guest_scans_used: number
+}
+
+export const GUEST_SCAN_LIMIT = 2
+
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem(TOKEN_KEY)
   return token ? { Authorization: `Bearer ${token}` } : {}
@@ -120,8 +145,24 @@ export const api = {
     if (t) localStorage.setItem(TOKEN_KEY, t)
     else localStorage.removeItem(TOKEN_KEY)
   },
-  register: (email: string, password: string) =>
-    request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  register: (email: string, password: string, name?: string) =>
+    request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name: name || undefined }) }),
+  startGuest: async () => {
+    const data = await request<{ access_token: string }>('/auth/guest', {
+      method: 'POST',
+      body: JSON.stringify({ device_id: deviceId() }),
+    })
+    api.setToken(data.access_token)
+    return data
+  },
+  claim: async (name: string, email: string, password: string) => {
+    const data = await request<{ access_token: string }>('/auth/claim', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password }),
+    })
+    api.setToken(data.access_token)
+    return data
+  },
   login: async (email: string, password: string) => {
     const body = new URLSearchParams({ username: email, password })
     let res: Response
@@ -148,7 +189,7 @@ export const api = {
     api.setToken(data.access_token)
     return data
   },
-  me: () => request<{ id: number; email: string }>('/auth/me'),
+  me: () => request<Me>('/auth/me'),
   watchlists: () => request<Watchlist[]>('/watchlists'),
   createWatchlist: (keyword: string, platforms: string[]) =>
     request<Watchlist>('/watchlists', {
