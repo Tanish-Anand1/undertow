@@ -1,4 +1,18 @@
 const TOKEN_KEY = 'undertow_token'
+const DEVICE_KEY = 'sudo_device'
+
+export function deviceId(): string {
+  let id = localStorage.getItem(DEVICE_KEY)
+  if (!id || id.length < 8) {
+    id = crypto.randomUUID().replace(/-/g, '')
+    localStorage.setItem(DEVICE_KEY, id)
+  }
+  return id
+}
+
+export function resetDeviceId() {
+  localStorage.removeItem(DEVICE_KEY)
+}
 
 const PRODUCTION_API = 'https://undertow-api.vercel.app'
 
@@ -65,6 +79,17 @@ export type Stats = {
   replies_drafted: number
   x_circuit_open?: boolean
 }
+
+export type Me = {
+  id: number
+  email: string
+  name: string | null
+  email_verified: boolean
+  is_guest: boolean
+  guest_scans_used: number
+}
+
+export const GUEST_SCAN_LIMIT = 2
 
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem(TOKEN_KEY)
@@ -162,7 +187,7 @@ export const api = {
     api.setToken(data.access_token)
     return data
   },
-  me: () => request<{ id: number; email: string }>('/auth/me'),
+  me: () => request<Me>('/auth/me'),
   watchlists: () => request<Watchlist[]>('/watchlists'),
   createWatchlist: (keyword: string, platforms: string[]) =>
     request<Watchlist>('/watchlists', {

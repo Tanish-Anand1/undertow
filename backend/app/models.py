@@ -35,6 +35,9 @@ class User(Base):
     last_scan_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_digest_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     google_sub: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True, index=True)
+    is_guest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    guest_scans_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    guest_device_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=func.now()
     )

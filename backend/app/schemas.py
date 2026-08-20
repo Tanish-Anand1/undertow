@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
+    name: str | None = Field(default=None, max_length=120)
 
 
 class UserOut(BaseModel):
@@ -14,6 +15,8 @@ class UserOut(BaseModel):
     name: str | None = None
     is_guest: bool
     email_verified: bool = True
+    is_guest: bool = False
+    guest_scans_used: int = 0
     created_at: datetime
 
     model_config = {"from_attributes": True}

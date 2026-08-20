@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -84,6 +84,8 @@ def trigger_ingest(
     
     scan = enqueue_scan(db, user_id=user.id)
     user.last_scan_at = datetime.now(timezone.utc)
+    if user.is_guest:
+        user.guest_scans_used += 1
     db.commit()
     db.refresh(scan)
     return _scan_out(scan)
